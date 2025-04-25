@@ -211,6 +211,12 @@ AddEventHandler('project-sentinel:submitReport', function(title, content)
     Logger.info("SERVER", string.format("Player %s (ID: %d) submitted a new report: %s", 
         playerName, source, title))
     
+    if not title or not content or #title < 1 or #content < 1 then
+        Logger.warn("SERVER", "Report submission rejected: Invalid data")
+        TriggerClientEvent('project-sentinel:reportNotification', source, "Invalid report data. Please try again.")
+        return
+    end
+    
     local identifier = GetPlayerIdentifier(source, 0)
     local coords = GetEntityCoords(GetPlayerPed(source))
     local coordString = coords.x .. ", " .. coords.y .. ", " .. coords.z

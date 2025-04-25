@@ -93,7 +93,7 @@ const ReportPanel = ({ onClose }) => {
       },
       body: JSON.stringify({
         title: title.trim(),
-        content: content.trim(),
+        content: content.trim(), // Make sure we're using 'content' as the field name
       }),
     })
     .then(response => response.json())

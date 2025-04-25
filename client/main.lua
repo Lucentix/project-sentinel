@@ -96,8 +96,10 @@ end)
 RegisterNUICallback('submitReport', function(data, cb)
     Logger.info("CLIENT", "NUI callback: submitReport received")
     Logger.debug("CLIENT", "Received data: " .. json.encode(data))
+    
+    -- Fix the property access - check both content and description fields
     local title = data.title
-    local content = data.description
+    local content = data.content or data.description
     
     if title and content and #title > 0 and #content > 0 then
         Logger.info("CLIENT", "Submitting report: " .. title)
@@ -107,6 +109,7 @@ RegisterNUICallback('submitReport', function(data, cb)
         Logger.success("CLIENT", "Report submitted successfully")
     else
         Logger.warn("CLIENT", "Report submission failed: Invalid input")
+        Logger.debug("CLIENT", "Title: " .. tostring(title) .. ", Content: " .. tostring(content))
         cb({ success = false, error = "Please fill in all fields" })
     end
 end)
@@ -164,7 +167,32 @@ RegisterNUICallback('toggleAdminMode', function(data, cb)
     cb({ isInAdminMode = isInAdminMode })
 end)
 
+RegisterNUICallback('getServerStats', function(data, cb)
+    Logger.info("CLIENT", "NUI callback: getServerStats received")
+    TriggerServerEvent('project-sentinel:getServerStats')
+    cb({ success = true })
+end)
+
+RegisterNUICallback('getReports', function(data, cb)
+    Logger.info("CLIENT", "NUI callback: getReports received")
+    TriggerServerEvent('project-sentinel:getReports')
+    cb({ success = true })
+end)
+
+RegisterNUICallback('getOnlinePlayers', function(data, cb)
+    Logger.info("CLIENT", "NUI callback: getOnlinePlayers received")
+    TriggerServerEvent('project-sentinel:getOnlinePlayers')
+    cb({ success = true })
+end)
+
+RegisterNUICallback('getAdminUsers', function(data, cb)
+    Logger.info("CLIENT", "NUI callback: getAdminUsers received")
+    TriggerServerEvent('project-sentinel:getAdminUsers')
+    cb({ success = true })
+end)
+
 RegisterNUICallback('refreshData', function(data, cb)
+    Logger.info("CLIENT", "NUI callback: refreshData received")
     TriggerServerEvent('project-sentinel:getServerStats')
     TriggerServerEvent('project-sentinel:getReports')
     TriggerServerEvent('project-sentinel:getOnlinePlayers')
@@ -173,7 +201,7 @@ RegisterNUICallback('refreshData', function(data, cb)
         TriggerServerEvent('project-sentinel:getAdminUsers')
     end
     
-    cb('ok')
+    cb({ success = true })
 end)
 
 function RestorePlayerOutfit()

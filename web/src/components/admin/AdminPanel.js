@@ -124,42 +124,52 @@ const AdminPanel = ({ adminRank, onClose }) => {
     setIsLoading(true);
     console.log('[React] Fetching initial data...');
     
-    console.log('[React] Requesting server stats');
-    fetch('https://project-sentinel/getServerStats', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: JSON.stringify({}),
-    })
-    .then(() => console.log('[React] getServerStats request sent'))
-    .catch(err => console.error('[React] Error sending getServerStats request:', err));
+    // Directly use FetchNUI to ensure proper communication with the server
+    const fetchServerData = async () => {
+      try {
+        console.log('[React] Requesting server stats');
+        await fetch('https://project-sentinel/getServerStats', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+          }
+        });
+        
+        if (hasPermission('reports')) {
+          console.log('[React] Requesting reports');
+          await fetch('https://project-sentinel/getReports', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+            }
+          });
+        }
+        
+        if (hasPermission('players')) {
+          console.log('[React] Requesting online players');
+          await fetch('https://project-sentinel/getOnlinePlayers', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+            }
+          });
+        }
+        
+        if (hasPermission('permissions')) {
+          console.log('[React] Requesting admin users');
+          await fetch('https://project-sentinel/getAdminUsers', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json; charset=UTF-8',
+            }
+          });
+        }
+      } catch (err) {
+        console.error('[React] Error fetching data:', err);
+      }
+    };
     
-    if (hasPermission('reports')) {
-      console.log('[React] Requesting reports');
-      fetch('https://project-sentinel/getReports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify({}),
-      })
-      .then(() => console.log('[React] getReports request sent'))
-      .catch(err => console.error('[React] Error sending getReports request:', err));
-    }
-    
-    if (hasPermission('players')) {
-      console.log('[React] Requesting online players');
-      fetch('https://project-sentinel/getOnlinePlayers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: JSON.stringify({}),
-      })
-      .then(() => console.log('[React] getOnlinePlayers request sent'))
-      .catch(err => console.error('[React] Error sending getOnlinePlayers request:', err));
-    }
+    fetchServerData();
     
     setTimeout(() => {
       console.log('[React] Finished loading timer, setting isLoading to false');
@@ -167,6 +177,28 @@ const AdminPanel = ({ adminRank, onClose }) => {
     }, 1500);
     
   }, [adminRank, hasPermission]);
+
+  // Add a refresh function
+  const refreshData = useCallback(() => {
+    console.log('[React] Manually refreshing data');
+    setIsLoading(true);
+    
+    fetch('https://project-sentinel/refreshData', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json; charset=UTF-8',
+      }
+    })
+    .then(() => {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
+    })
+    .catch(err => {
+      console.error('[React] Error refreshing data:', err);
+      setIsLoading(false);
+    });
+  }, []);
 
   const getRankColor = () => {
     switch (adminRank) {
