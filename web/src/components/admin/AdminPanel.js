@@ -44,6 +44,8 @@ const CloseButton = styled(ActionIcon)`
 `;
 
 const AdminPanel = ({ adminRank, onClose }) => {
+  console.log('[React] AdminPanel rendering with rank:', adminRank);
+  
   const [activeTab, setActiveTab] = useState('dashboard');
   const [serverStats, setServerStats] = useState(null);
   const [reports, setReports] = useState([]);
@@ -51,6 +53,7 @@ const AdminPanel = ({ adminRank, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   
   const hasPermission = useCallback((tab) => {
+    console.log('[React] Checking permission for tab:', tab, 'with rank:', adminRank);
     if (!adminRank) return false;
     
     switch (tab) {
@@ -68,18 +71,22 @@ const AdminPanel = ({ adminRank, onClose }) => {
   }, [adminRank]);
 
   useNuiEvent('receiveServerStats', (data) => {
+    console.log('[React] Received server stats:', data);
     setServerStats(data);
   });
   
   useNuiEvent('receiveReports', (data) => {
+    console.log('[React] Received reports:', data);
     setReports(data);
   });
   
   useNuiEvent('receiveOnlinePlayers', (data) => {
+    console.log('[React] Received online players:', data);
     setPlayers(data);
   });
   
   useNuiEvent('receivePlayerInventory', (data) => {
+    console.log('[React] Received player inventory:', data);
     setPlayers(prevPlayers => {
       return prevPlayers.map(player => {
         if (player.id === data.playerId) {
@@ -91,39 +98,51 @@ const AdminPanel = ({ adminRank, onClose }) => {
   });
 
   useEffect(() => {
+    console.log('[React] AdminPanel component mounted with rank:', adminRank);
     if (!adminRank) return;
     
     setIsLoading(true);
+    console.log('[React] Fetching initial data...');
     
+    console.log('[React] Requesting server stats');
     fetch('https://project-sentinel/getServerStats', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json; charset=UTF-8',
       },
       body: JSON.stringify({}),
-    });
+    })
+    .then(() => console.log('[React] getServerStats request sent'))
+    .catch(err => console.error('[React] Error sending getServerStats request:', err));
     
     if (hasPermission('reports')) {
+      console.log('[React] Requesting reports');
       fetch('https://project-sentinel/getReports', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: JSON.stringify({}),
-      });
+      })
+      .then(() => console.log('[React] getReports request sent'))
+      .catch(err => console.error('[React] Error sending getReports request:', err));
     }
     
     if (hasPermission('players')) {
+      console.log('[React] Requesting online players');
       fetch('https://project-sentinel/getOnlinePlayers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: JSON.stringify({}),
-      });
+      })
+      .then(() => console.log('[React] getOnlinePlayers request sent'))
+      .catch(err => console.error('[React] Error sending getOnlinePlayers request:', err));
     }
     
     setTimeout(() => {
+      console.log('[React] Finished loading timer, setting isLoading to false');
       setIsLoading(false);
     }, 1500);
     
@@ -164,11 +183,15 @@ const AdminPanel = ({ adminRank, onClose }) => {
   };
 
   const handleTabChange = (value) => {
+    console.log('[React] Changing tab to:', value);
     if (hasPermission(value)) {
       setActiveTab(value);
+    } else {
+      console.log('[React] Permission denied for tab:', value);
     }
   };
 
+  console.log('[React] Rendering AdminPanel with activeTab:', activeTab, 'isLoading:', isLoading);
   return (
     <AdminContainer className="fade-in">
       <CloseButton onClick={onClose} variant="subtle" color="gray">

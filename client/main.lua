@@ -13,6 +13,7 @@ RegisterCommand('project-sentinel:report', function()
 end, false)
 
 RegisterCommand('admin', function()
+    print("[client] Attempting to open admin panel...")
     TriggerServerEvent('project-sentinel:checkAdminPermission')
 end, false)
 
@@ -22,22 +23,27 @@ AddEventHandler('project-sentinel:openReportMenu', function()
 end)
 
 function OpenReportMenu()
+    print("[client] Opening report menu...")
     isReportMenuOpen = true
     SendNUIMessage({
         action = "openReportUI"
     })
     SetNuiFocus(true, true)
+    print("[client] Report menu opened and NUI focus set")
 end
 
 function CloseReportMenu()
+    print("[client] Closing report menu...")
     isReportMenuOpen = false
     SendNUIMessage({
         action = "closeReportMenu"
     })
     SetNuiFocus(false, false)
+    print("[client] Report menu closed and NUI focus removed")
 end
 
 function OpenAdminPanel(rank)
+    print("[client] Opening admin panel with rank: " .. tostring(rank))
     isAdminMenuOpen = true
     playerAdminRank = rank
     SendNUIMessage({
@@ -45,25 +51,33 @@ function OpenAdminPanel(rank)
         adminRank = rank
     })
     SetNuiFocus(true, true)
+    print("[client] Admin panel opened and NUI focus set")
     
+    print("[client] Requesting server stats...")
     TriggerServerEvent('project-sentinel:getServerStats')
+    print("[client] Requesting reports...")
     TriggerServerEvent('project-sentinel:getReports')
+    print("[client] Requesting online players...")
     TriggerServerEvent('project-sentinel:getOnlinePlayers')
     
     if rank == "administrator" or rank == "management" or rank == "leitung" then
+        print("[client] Requesting admin users list...")
         TriggerServerEvent('project-sentinel:getAdminUsers')
     end
 end
 
 function CloseAdminPanel()
+    print("[client] Closing admin panel...")
     isAdminMenuOpen = false
     SendNUIMessage({
-        type = "closeAdminPanel"
+        action = "closeAdminPanel"
     })
     SetNuiFocus(false, false)
+    print("[client] Admin panel closed and NUI focus removed")
 end
 
 RegisterNUICallback('closeMenu', function(data, cb)
+    print("[client] NUI callback received: closeMenu")
     if isReportMenuOpen then
         CloseReportMenu()
     elseif isAdminMenuOpen then
@@ -172,45 +186,51 @@ end)
 
 RegisterNetEvent('project-sentinel:openAdminPanel')
 AddEventHandler('project-sentinel:openAdminPanel', function(rank)
+    print("[client] Received event to open admin panel with rank: " .. tostring(rank))
     OpenAdminPanel(rank)
 end)
 
 RegisterNetEvent('project-sentinel:receiveServerStats')
 AddEventHandler('project-sentinel:receiveServerStats', function(stats)
+    print("[client] Received server stats")
     SendNUIMessage({
-        type = "updateServerStats",
+        action = "receiveServerStats",
         stats = stats
     })
 end)
 
 RegisterNetEvent('project-sentinel:receiveReports')
 AddEventHandler('project-sentinel:receiveReports', function(reports)
+    print("[client] Received " .. #reports .. " reports")
     SendNUIMessage({
-        type = "updateReports",
+        action = "receiveReports",
         reports = reports
     })
 end)
 
 RegisterNetEvent('project-sentinel:receivePlayerInventory')
 AddEventHandler('project-sentinel:receivePlayerInventory', function(data)
+    print("[client] Received inventory for player ID: " .. tostring(data.playerId))
     SendNUIMessage({
-        type = "displayPlayerInventory",
+        action = "receivePlayerInventory",
         data = data
     })
 end)
 
 RegisterNetEvent('project-sentinel:receiveOnlinePlayers')
 AddEventHandler('project-sentinel:receiveOnlinePlayers', function(players)
+    print("[client] Received " .. #players .. " online players")
     SendNUIMessage({
-        type = "updateOnlinePlayers",
+        action = "receiveOnlinePlayers",
         players = players
     })
 end)
 
 RegisterNetEvent('project-sentinel:receiveAdminUsers')
 AddEventHandler('project-sentinel:receiveAdminUsers', function(adminUsers)
+    print("[client] Received " .. #adminUsers .. " admin users")
     SendNUIMessage({
-        type = "updateAdminUsers",
+        action = "receiveAdminUsers",
         adminUsers = adminUsers
     })
 end)

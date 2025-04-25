@@ -97,11 +97,36 @@ AddEventHandler('onResourceStart', function(resourceName)
         return
     end
     print('^2Project Sentinel Admin System has started^0')
+    print('^3Creating data directory if it does not exist^0')
     
-    -- Ensure ranks file exists
+    -- Create data directory if it doesn't exist
+    local path = GetResourcePath(GetCurrentResourceName()) .. '/data'
+    if not os.rename(path, path) then
+        os.execute("mkdir \"" .. path .. "\"")
+        print("^2Created data directory for Project Sentinel^0")
+    end
+    
+    -- Ensure admin_ranks.json exists
+    local adminRanksPath = path .. '/admin_ranks.json'
+    if not os.rename(adminRanksPath, adminRanksPath) then
+        local file = io.open(adminRanksPath, 'w+')
+        if file then
+            file:write('[]')
+            file:close()
+            print("^2Created empty admin_ranks.json file^0")
+        else
+            print("^1Failed to create admin_ranks.json file^0")
+        end
+    else
+        print("^3admin_ranks.json already exists^0")
+    end
+    
+    -- Now load everything else
     adminRanks = EnsureRanksFileExists()
     LoadAdminRanks()
     LoadReportsFromStorage()
+    
+    print("^2Project Sentinel initialization complete^0")
 end)
 
 function LoadAdminRanks()
@@ -195,17 +220,24 @@ function LoadReportsFromStorage()
 end
 
 function GetPlayerAdminRank(source)
+    print("[server] Checking admin rank for player ID: " .. tostring(source))
     local identifier = GetPlayerIdentifier(source, 0)
-    if not identifier then return nil end
+    if not identifier then 
+        print("[server] No identifier found for player ID: " .. tostring(source))
+        return nil 
+    end
     
+    print("[server] Player identifier: " .. identifier)
     local adminUsers = Storage.Read('admin_ranks')
     
     for _, admin in ipairs(adminUsers) do
         if admin.identifier == identifier then
+            print("[server] Admin rank found: " .. admin.rank)
             return admin.rank
         end
     end
     
+    print("[server] No admin rank found for player ID: " .. tostring(source))
     return nil
 end
 
@@ -320,11 +352,14 @@ end)
 RegisterNetEvent('project-sentinel:checkAdminPermission')
 AddEventHandler('project-sentinel:checkAdminPermission', function()
     local source = source
+    print("[server] Player ID " .. source .. " is checking admin permissions")
     local adminRank = GetPlayerAdminRank(source)
     
     if adminRank and adminRanks[adminRank] then
+        print("[server] Player ID " .. source .. " has admin rank: " .. adminRank .. ", opening admin panel")
         TriggerClientEvent('project-sentinel:openAdminPanel', source, adminRank)
     else
+        print("[server] Player ID " .. source .. " does not have admin permissions")
         TriggerClientEvent('project-sentinel:reportNotification', source, "You don't have permission to access the Admin Panel")
     end
 end)
@@ -332,10 +367,15 @@ end)
 RegisterNetEvent('project-sentinel:getServerStats')
 AddEventHandler('project-sentinel:getServerStats', function()
     local source = source
+    print("[server] Player ID " .. source .. " requested server stats")
     local adminRank = GetPlayerAdminRank(source)
     
-    if not adminRank then return end
+    if not adminRank then 
+        print("[server] Request denied - no admin rank")
+        return 
+    end
     
+    print("[server] Gathering server stats...")
     local stats = {
         players = {
             online = #GetPlayers(),
@@ -359,15 +399,18 @@ AddEventHandler('project-sentinel:getServerStats', function()
         end
     end
     
+    print("[server] Sending server stats to player ID " .. source)
     TriggerClientEvent('project-sentinel:receiveServerStats', source, stats)
 end)
 
 RegisterNetEvent('project-sentinel:getReports')
 AddEventHandler('project-sentinel:getReports', function()
     local source = source
+    print("[server] Player ID " .. source .. " requested reports")
     local adminRank = GetPlayerAdminRank(source)
     
     if not adminRank or not adminRanks[adminRank] or not adminRanks[adminRank].canSeeReports then
+        print("[server] Request denied - insufficient permissions")
         return
     end
     
@@ -380,6 +423,7 @@ AddEventHandler('project-sentinel:getReports', function()
         return a.submittedAt > b.submittedAt
     end)
     
+    print("[server] Sending " .. #reportsArray .. " reports to player ID " .. source)
     TriggerClientEvent('project-sentinel:receiveReports', source, reportsArray)
 end)
 
@@ -623,9 +667,11 @@ end)
 RegisterNetEvent('project-sentinel:getOnlinePlayers')
 AddEventHandler('project-sentinel:getOnlinePlayers', function()
     local source = source
+    print("[server] Player ID " .. source .. " requested online players")
     local adminRank = GetPlayerAdminRank(source)
     
     if not adminRank or not adminRanks[adminRank] then
+        print("[server] Request denied - insufficient permissions")
         return
     end
     
@@ -638,6 +684,7 @@ AddEventHandler('project-sentinel:getOnlinePlayers', function()
         })
     end
     
+    print("[server] Sending " .. #players .. " online players to player ID " .. source)
     TriggerClientEvent('project-sentinel:receiveOnlinePlayers', source, players)
 end)
 
@@ -653,4 +700,36 @@ AddEventHandler('project-sentinel:getAdminUsers', function()
     local adminUsers = Storage.Read('admin_ranks')
     
     TriggerClientEvent('project-sentinel:receiveAdminUsers', source, adminUsers)
+end)
+
+RegisterNUICallback('getServerStats', function(data, cb)
+    local source = source
+    print("[server] NUI callback: Player ID " .. source .. " requested server stats")
+    
+    -- Add this extra check - sometimes NUI callbacks don't pass through the proper event
+    local adminRank = GetPlayerAdminRank(source)
+    if not adminRank then
+        print("[server] NUI callback denied - no admin rank")
+        cb({ success = false, message = "Not authorized" })
+        return
+    end
+    
+    -- Process the request just like the event handler does
+    TriggerEvent('project-sentinel:getServerStats', source)
+    cb({ success = true })
+end)
+
+-- Add similar handlers for other NUI callbacks
+RegisterNUICallback('getReports', function(data, cb)
+    local source = source
+    print("[server] NUI callback: Player ID " .. source .. " requested reports")
+    TriggerEvent('project-sentinel:getReports', source)
+    cb({ success = true })
+end)
+
+RegisterNUICallback('getOnlinePlayers', function(data, cb)
+    local source = source
+    print("[server] NUI callback: Player ID " .. source .. " requested online players")
+    TriggerEvent('project-sentinel:getOnlinePlayers', source)
+    cb({ success = true })
 end)
