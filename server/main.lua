@@ -637,38 +637,6 @@ AddEventHandler('project-sentinel:getAdminUsers', function()
     TriggerClientEvent('project-sentinel:receiveAdminUsers', source, adminUsers)
 end)
 
-RegisterNUICallback('getServerStats', function(data, cb)
-    local playerSource = source
-    print("[server] NUI callback: Player ID " .. playerSource .. " requested server stats")
-    
-    -- Add this extra check - sometimes NUI callbacks don't pass through the proper event
-    local adminRank = GetPlayerAdminRank(playerSource)
-    if not adminRank then
-        print("[server] NUI callback denied - no admin rank")
-        cb({ success = false, message = "Not authorized" })
-        return
-    end
-    
-    -- Process the request just like the event handler does
-    TriggerEvent('project-sentinel:getServerStats', playerSource)
-    cb({ success = true })
-end)
-
--- Add similar handlers for other NUI callbacks
-RegisterNUICallback('getReports', function(data, cb)
-    local source = source
-    print("[server] NUI callback: Player ID " .. source .. " requested reports")
-    TriggerEvent('project-sentinel:getReports', source)
-    cb({ success = true })
-end)
-
-RegisterNUICallback('getOnlinePlayers', function(data, cb)
-    local source = source
-    print("[server] NUI callback: Player ID " .. source .. " requested online players")
-    TriggerEvent('project-sentinel:getOnlinePlayers', source)
-    cb({ success = true })
-end)
-
 -- Enhancement: Add a heartbeat to periodically save data and check system health
 Citizen.CreateThread(function()
     while true do
