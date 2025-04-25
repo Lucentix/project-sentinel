@@ -63,6 +63,7 @@ function App() {
     return () => window.removeEventListener('keydown', handleEscapeKey);
   }, [visible, handleClose]);
 
+  // Return null when not visible to prevent rendering anything
   if (!visible) return null;
 
   return (

@@ -16,10 +16,15 @@ RegisterCommand('admin', function()
     TriggerServerEvent('project-sentinel:checkAdminPermission')
 end, false)
 
+RegisterNetEvent('project-sentinel:openReportMenu')
+AddEventHandler('project-sentinel:openReportMenu', function()
+    OpenReportMenu()
+end)
+
 function OpenReportMenu()
     isReportMenuOpen = true
     SendNUIMessage({
-        type = "openReportMenu"
+        action = "openReportUI"
     })
     SetNuiFocus(true, true)
 end
@@ -27,7 +32,7 @@ end
 function CloseReportMenu()
     isReportMenuOpen = false
     SendNUIMessage({
-        type = "closeReportMenu"
+        action = "closeReportMenu"
     })
     SetNuiFocus(false, false)
 end
@@ -36,8 +41,8 @@ function OpenAdminPanel(rank)
     isAdminMenuOpen = true
     playerAdminRank = rank
     SendNUIMessage({
-        type = "openAdminPanel",
-        rank = rank
+        action = "openAdminPanel",
+        adminRank = rank
     })
     SetNuiFocus(true, true)
     
