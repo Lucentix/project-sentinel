@@ -1,51 +1,87 @@
 -- Permission Handler for Project Sentinel
 
+-- First load our logger
+local resourceName = GetCurrentResourceName()
+local Logger = exports[resourceName]:getLogger()
+
 local Storage = LoadResourceFile(GetCurrentResourceName(), 'server/json_storage.lua')
 Storage = load(Storage)()
 
+Logger.info("PERMISSIONS", "Initializing permission handler")
+
 -- Function to find a player by ID or partial name
 local function FindPlayer(identifier)
+    Logger.debug("PERMISSIONS", "Looking for player with identifier: " .. tostring(identifier))
+    
     -- If input is a number, try to find by ID
     if tonumber(identifier) then
         local id = tonumber(identifier)
         if GetPlayerName(id) then
-            return id, GetPlayerIdentifier(id, 0)
+            local playerIdentifier = GetPlayerIdentifier(id, 0)
+            Logger.success("PERMISSIONS", string.format("Found player by ID: %d - %s with identifier %s", 
+                id, GetPlayerName(id), playerIdentifier))
+            return id, playerIdentifier
         end
     end
     
     -- Otherwise try to find by name (can be partial)
     local players = GetPlayers()
+    Logger.debug("PERMISSIONS", string.format("Searching %d online players for name match", #players))
+    
     for _, playerId in ipairs(players) do
         local name = GetPlayerName(playerId)
         if name and string.find(string.lower(name), string.lower(identifier)) then
-            return playerId, GetPlayerIdentifier(playerId, 0)
+            local playerIdentifier = GetPlayerIdentifier(playerId, 0)
+            Logger.success("PERMISSIONS", string.format("Found player by name: %s (ID: %s) with identifier %s", 
+                name, playerId, playerIdentifier))
+            return playerId, playerIdentifier
         end
     end
     
+    Logger.warn("PERMISSIONS", "Player not found: " .. tostring(identifier))
     return nil
 end
 
 -- Function to check if a player has permissions to manage admins
 local function CanManageAdmins(source)
+    local playerName = GetPlayerName(source) or "Unknown"
+    Logger.debug("PERMISSIONS", string.format("Checking if player %s (ID: %d) can manage admins", 
+        playerName, source))
+        
     local adminRank = GetPlayerAdminRank(source)
-    if not adminRank then return false end
+    if not adminRank then 
+        Logger.debug("PERMISSIONS", string.format("Player %s has no admin rank", playerName))
+        return false 
+    end
+    
+    Logger.debug("PERMISSIONS", string.format("Player %s has rank: %s", playerName, adminRank))
     
     -- Load admin ranks from config
     local path = GetResourcePath(GetCurrentResourceName()) .. '/data/ranks.json'
     local file = io.open(path, 'r')
-    if not file then return false end
+    if not file then 
+        Logger.error("PERMISSIONS", "Could not open ranks file")
+        return false 
+    end
     
     local content = file:read('*a')
     file:close()
     
     local success, ranks = pcall(function() return json.decode(content) end)
-    if not success then return false end
+    if not success then 
+        Logger.error("PERMISSIONS", string.format("Error parsing ranks JSON: %s", tostring(ranks)))
+        return false 
+    end
     
     -- Check if player's rank has permission to manage permissions
     if ranks[adminRank] and ranks[adminRank].canManagePermissions then
+        Logger.success("PERMISSIONS", string.format("Player %s with rank %s can manage admins", 
+            playerName, adminRank))
         return true
     end
     
+    Logger.warn("PERMISSIONS", string.format("Player %s with rank %s cannot manage admins", 
+        playerName, adminRank))
     return false
 end
 
@@ -53,9 +89,14 @@ end
 RegisterNetEvent('project-sentinel:setAdminRank')
 AddEventHandler('project-sentinel:setAdminRank', function(targetIdentifier, rank)
     local source = source
+    local adminName = GetPlayerName(source) or "Unknown"
+    
+    Logger.info("PERMISSIONS", string.format("Player %s (ID: %d) is attempting to set %s to rank %s", 
+        adminName, source, targetIdentifier, rank))
     
     -- Check if the source has permission to set ranks
     if not CanManageAdmins(source) then
+        Logger.warn("PERMISSIONS", "Permission denied - player cannot manage admins")
         TriggerClientEvent('project-sentinel:reportNotification', source, "You don't have permission to manage admin ranks")
         return
     end
@@ -64,6 +105,7 @@ AddEventHandler('project-sentinel:setAdminRank', function(targetIdentifier, rank
     local path = GetResourcePath(GetCurrentResourceName()) .. '/data/ranks.json'
     local file = io.open(path, 'r')
     if not file then
+        Logger.error("PERMISSIONS", "Error: Could not load rank definitions")
         TriggerClientEvent('project-sentinel:reportNotification', source, "Error: Could not load rank definitions")
         return
     end
@@ -73,29 +115,42 @@ AddEventHandler('project-sentinel:setAdminRank', function(targetIdentifier, rank
     
     local success, ranks = pcall(function() return json.decode(content) end)
     if not success or not ranks[rank] then
+        Logger.warn("PERMISSIONS", string.format("Invalid rank specified: %s", rank))
         TriggerClientEvent('project-sentinel:reportNotification', source, "Invalid rank specified: " .. rank)
         return
     end
     
     -- Find player by ID or name
     local playerId, playerIdentifier = FindPlayer(targetIdentifier)
-    if not playerId then
+    if not playerId or not playerIdentifier then
+        Logger.warn("PERMISSIONS", string.format("Player %s tried to set rank for non-existent player: %s", 
+            adminName, targetIdentifier))
         TriggerClientEvent('project-sentinel:reportNotification', source, "Player not found")
         return
     end
     
     -- Update player rank
     local playerName = GetPlayerName(playerId)
-    local adminName = GetPlayerName(source)
     local adminIdentifier = GetPlayerIdentifier(source, 0)
+    
+    Logger.info("PERMISSIONS", string.format("Updating rank for %s (ID: %d) to %s", 
+        playerName, playerId, rank))
     
     -- Load existing admin users
     local adminUsers = Storage.Read('admin_ranks')
+    Logger.debug("PERMISSIONS", string.format("Current admin users: %s", json.encode(adminUsers)))
+    
+    -- Create empty array if nil
+    if not adminUsers then
+        Logger.debug("PERMISSIONS", "Admin users array was nil, creating empty array")
+        adminUsers = {}
+    end
     
     -- Update or add the player's rank
     local playerFound = false
     for i, admin in ipairs(adminUsers) do
         if admin.identifier == playerIdentifier then
+            Logger.debug("PERMISSIONS", "Updating existing admin entry")
             admin.rank = rank
             admin.name = playerName
             admin.assignedBy = adminName
@@ -106,6 +161,7 @@ AddEventHandler('project-sentinel:setAdminRank', function(targetIdentifier, rank
     end
     
     if not playerFound then
+        Logger.debug("PERMISSIONS", "Adding new admin entry")
         table.insert(adminUsers, {
             identifier = playerIdentifier,
             name = playerName,
@@ -117,14 +173,25 @@ AddEventHandler('project-sentinel:setAdminRank', function(targetIdentifier, rank
     end
     
     -- Save the updated admin ranks
-    Storage.Write('admin_ranks', adminUsers)
+    Logger.info("PERMISSIONS", "Saving updated admin ranks")
+    local saveSuccess = Storage.Write('admin_ranks', adminUsers)
+    
+    if not saveSuccess then
+        Logger.error("PERMISSIONS", "Failed to save admin ranks")
+        TriggerClientEvent('project-sentinel:reportNotification', source, "Error: Failed to save admin ranks")
+        return
+    end
     
     -- Notify the admin and target player
+    Logger.success("PERMISSIONS", string.format("Admin %s set %s's rank to %s", 
+        adminName, playerName, rank))
+    
     TriggerClientEvent('project-sentinel:reportNotification', source, "Set " .. playerName .. "'s rank to " .. rank)
     TriggerClientEvent('project-sentinel:reportNotification', playerId, "Your admin rank has been set to: " .. rank .. " by " .. adminName)
     
     -- Log the action
-    print("^2[ADMIN]^0 " .. adminName .. " (" .. adminIdentifier .. ") set " .. playerName .. "'s rank to " .. rank)
+    Logger.info("PERMISSIONS", string.format("Admin action: %s (%s) set %s's rank to %s", 
+        adminName, adminIdentifier, playerName, rank))
 end)
 
 -- Remove admin rank from player
@@ -227,3 +294,5 @@ AddEventHandler('project-sentinel:listAvailableRanks', function()
     
     TriggerClientEvent('project-sentinel:reportNotification', source, rankList)
 end)
+
+Logger.success("PERMISSIONS", "Permission handler initialized")

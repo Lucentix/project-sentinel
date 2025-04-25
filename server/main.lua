@@ -1,4 +1,8 @@
-local Storage = LoadResourceFile(GetCurrentResourceName(), 'server/json_storage.lua')
+-- First load our logger
+local resourceName = GetCurrentResourceName()
+local Logger = exports[resourceName]:getLogger()
+
+local Storage = LoadResourceFile(resourceName, 'server/json_storage.lua')
 Storage = load(Storage)()
 
 local activeReports = {}
@@ -7,133 +11,34 @@ local discordWebhook = "YOUR_DISCORD_WEBHOOK_URL_HERE"
 
 local adminRanks = {}
 
--- Function to ensure ranks file exists
-function EnsureRanksFileExists()
-    local path = GetResourcePath(GetCurrentResourceName()) .. '/data/ranks.json'
-    local file = io.open(path, 'r')
-    
-    if not file then
-        print("^3Creating default ranks.json file^0")
-        
-        local defaultRanks = {
-            ["supporter"] = {
-                canSeeReports = true,
-                canManageReports = true,
-                canTeleport = true,
-                canUseAdminOutfit = true,
-                canHandleReports = true
-            },
-            ["moderator"] = {
-                canSeeReports = true,
-                canManageReports = true,
-                canTeleport = true,
-                canUseAdminOutfit = true,
-                canHandleReports = true,
-                canSummonPlayers = true,
-                canSeeInventory = true,
-                canManagePlayers = true
-            },
-            ["administrator"] = {
-                canSeeReports = true,
-                canManageReports = true,
-                canTeleport = true,
-                canUseAdminOutfit = true,
-                canHandleReports = true,
-                canSummonPlayers = true,
-                canSeeInventory = true,
-                canManagePlayers = true,
-                canManagePermissions = true
-            },
-            ["management"] = {
-                canSeeReports = true,
-                canManageReports = true,
-                canTeleport = true,
-                canUseAdminOutfit = true,
-                canHandleReports = true,
-                canSummonPlayers = true,
-                canSeeInventory = true,
-                canManagePlayers = true,
-                canManagePermissions = true
-            },
-            ["leitung"] = {
-                canSeeReports = true,
-                canManageReports = true,
-                canTeleport = true,
-                canUseAdminOutfit = true,
-                canHandleReports = true,
-                canSummonPlayers = true,
-                canSeeInventory = true,
-                canManagePlayers = true,
-                canManagePermissions = true
-            }
-        }
-        
-        file = io.open(path, 'w+')
-        if file then
-            file:write(json.encode(defaultRanks, {indent = true}))
-            file:close()
-            print("^2Default ranks.json file created successfully^0")
-        else
-            print("^1Failed to create default ranks.json file^0")
-        end
-        
-        return defaultRanks
-    else
-        local content = file:read('*a')
-        file:close()
-        
-        local success, ranks = pcall(function() return json.decode(content) end)
-        if not success then
-            print("^1Error parsing ranks.json file: " .. ranks .. "^0")
-            return {}
-        end
-        
-        return ranks
-    end
-end
-
 AddEventHandler('onResourceStart', function(resourceName)
     if (GetCurrentResourceName() ~= resourceName) then
         return
     end
-    print('^2Project Sentinel Admin System has started^0')
-    print('^3Creating data directory if it does not exist^0')
     
-    -- Create data directory if it doesn't exist
-    local path = GetResourcePath(GetCurrentResourceName()) .. '/data'
-    if not os.rename(path, path) then
-        os.execute("mkdir \"" .. path .. "\"")
-        print("^2Created data directory for Project Sentinel^0")
-    end
+    Logger.success("SERVER", "Project Sentinel Admin System starting up")
     
-    -- Ensure admin_ranks.json exists
-    local adminRanksPath = path .. '/admin_ranks.json'
-    if not os.rename(adminRanksPath, adminRanksPath) then
-        local file = io.open(adminRanksPath, 'w+')
-        if file then
-            file:write('[]')
-            file:close()
-            print("^2Created empty admin_ranks.json file^0")
-        else
-            print("^1Failed to create admin_ranks.json file^0")
-        end
+    -- Ensure data directory exists
+    local dataPath = GetResourcePath(resourceName) .. '/data'
+    if not os.rename(dataPath, dataPath) then
+        os.execute("mkdir \"" .. dataPath .. "\"")
+        Logger.success("SERVER", "Created data directory for Project Sentinel")
     else
-        print("^3admin_ranks.json already exists^0")
+        Logger.info("SERVER", "Data directory already exists")
     end
     
-    -- Now load everything else
-    adminRanks = EnsureRanksFileExists()
     LoadAdminRanks()
     LoadReportsFromStorage()
     
-    print("^2Project Sentinel initialization complete^0")
+    Logger.success("SERVER", "Project Sentinel Admin System startup complete")
 end)
 
 function LoadAdminRanks()
+    Logger.info("SERVER", "Loading admin ranks configuration")
     local path = GetResourcePath(GetCurrentResourceName()) .. '/data/ranks.json'
     local file = io.open(path, 'r')
     if not file then
-        print('^1Error: Admin ranks file (ranks.json) not found. Using default ranks.^0')
+        Logger.warn("SERVER", "Admin ranks file (ranks.json) not found. Using default ranks.")
         adminRanks = {
             ["supporter"] = {
                 canSeeReports = true,
@@ -197,15 +102,16 @@ function LoadAdminRanks()
     end)
     
     if not success or not data then
-        print('^1Error parsing ranks.json: ' .. (data or "Unknown error") .. '. Using default ranks.^0')
+        Logger.error("SERVER", "Error parsing ranks.json: " .. (data or "Unknown error") .. '. Using default ranks.')
         return
     end
     
     adminRanks = data
-    print('^2Admin ranks loaded successfully from ranks.json^0')
+    Logger.success("SERVER", "Admin ranks loaded successfully from ranks.json")
 end
 
 function LoadReportsFromStorage()
+    Logger.info("SERVER", "Loading reports from storage")
     local savedReports = Storage.Read('reports')
     
     for _, report in ipairs(savedReports) do
@@ -216,28 +122,36 @@ function LoadReportsFromStorage()
         end
     end
     
-    print('^2Loaded ' .. #savedReports .. ' reports from storage^0')
+    Logger.success("SERVER", string.format("Loaded %d reports from storage", #savedReports))
 end
 
 function GetPlayerAdminRank(source)
-    print("[server] Checking admin rank for player ID: " .. tostring(source))
+    Logger.debug("SERVER", "Checking admin rank for player ID: " .. tostring(source))
     local identifier = GetPlayerIdentifier(source, 0)
     if not identifier then 
-        print("[server] No identifier found for player ID: " .. tostring(source))
+        Logger.warn("SERVER", "No identifier found for player ID: " .. tostring(source))
         return nil 
     end
     
-    print("[server] Player identifier: " .. identifier)
+    Logger.debug("SERVER", "Player identifier: " .. identifier)
     local adminUsers = Storage.Read('admin_ranks')
+    
+    -- Log the current admin users count
+    if adminUsers and type(adminUsers) == "table" then
+        Logger.debug("SERVER", string.format("Found %d admin users in database", #adminUsers))
+    else
+        Logger.warn("SERVER", "Admin users data is nil or not a table")
+        return nil
+    end
     
     for _, admin in ipairs(adminUsers) do
         if admin.identifier == identifier then
-            print("[server] Admin rank found: " .. admin.rank)
+            Logger.success("SERVER", string.format("Admin rank found for %s: %s", GetPlayerName(source) or "Unknown", admin.rank))
             return admin.rank
         end
     end
     
-    print("[server] No admin rank found for player ID: " .. tostring(source))
+    Logger.debug("SERVER", "No admin rank found for player ID: " .. tostring(source))
     return nil
 end
 
@@ -293,6 +207,10 @@ RegisterNetEvent('project-sentinel:submitReport')
 AddEventHandler('project-sentinel:submitReport', function(title, content)
     local source = source
     local playerName = GetPlayerName(source)
+    
+    Logger.info("SERVER", string.format("Player %s (ID: %d) submitted a new report: %s", 
+        playerName, source, title))
+    
     local identifier = GetPlayerIdentifier(source, 0)
     local coords = GetEntityCoords(GetPlayerPed(source))
     local coordString = coords.x .. ", " .. coords.y .. ", " .. coords.z
@@ -313,16 +231,25 @@ AddEventHandler('project-sentinel:submitReport', function(title, content)
     
     activeReports[reportId] = newReport
     
+    Logger.info("SERVER", string.format("Saving report #%d to storage", reportId))
     Storage.AddEntry('reports', newReport)
     
+    -- Notify admins about the new report
     local adminMessage = "New report (#" .. reportId .. ") from " .. playerName .. ": " .. title
+    Logger.info("SERVER", "Broadcasting report notification to admins")
+    local notifiedAdmins = 0
+    
     for _, playerId in ipairs(GetPlayers()) do
         local adminRank = GetPlayerAdminRank(playerId)
         if adminRank and adminRanks[adminRank] and adminRanks[adminRank].canSeeReports then
             TriggerClientEvent('project-sentinel:reportNotification', playerId, adminMessage)
+            notifiedAdmins = notifiedAdmins + 1
         end
     end
     
+    Logger.debug("SERVER", string.format("Notified %d admins about the new report", notifiedAdmins))
+    
+    -- Send to Discord webhook
     SendDiscordMessage(
         "New Report Submitted",
         "A new report has been submitted by " .. playerName,
@@ -346,20 +273,28 @@ AddEventHandler('project-sentinel:submitReport', function(title, content)
         }
     )
     
+    -- Notify the reporting player
     TriggerClientEvent('project-sentinel:reportNotification', source, "Your report has been submitted. Report ID: #" .. reportId)
+    Logger.success("SERVER", string.format("Report #%d successfully submitted by %s", reportId, playerName))
 end)
 
 RegisterNetEvent('project-sentinel:checkAdminPermission')
 AddEventHandler('project-sentinel:checkAdminPermission', function()
     local source = source
-    print("[server] Player ID " .. source .. " is checking admin permissions")
+    local playerName = GetPlayerName(source)
+    
+    Logger.info("SERVER", string.format("Player %s (ID: %d) is checking admin permissions", 
+        playerName, source))
+    
     local adminRank = GetPlayerAdminRank(source)
     
     if adminRank and adminRanks[adminRank] then
-        print("[server] Player ID " .. source .. " has admin rank: " .. adminRank .. ", opening admin panel")
+        Logger.success("SERVER", string.format("Player %s has admin rank: %s - opening admin panel", 
+            playerName, adminRank))
         TriggerClientEvent('project-sentinel:openAdminPanel', source, adminRank)
     else
-        print("[server] Player ID " .. source .. " does not have admin permissions")
+        Logger.warn("SERVER", string.format("Player %s attempted to access admin panel but has no permissions", 
+            playerName))
         TriggerClientEvent('project-sentinel:reportNotification', source, "You don't have permission to access the Admin Panel")
     end
 end)
@@ -732,4 +667,19 @@ RegisterNUICallback('getOnlinePlayers', function(data, cb)
     print("[server] NUI callback: Player ID " .. source .. " requested online players")
     TriggerEvent('project-sentinel:getOnlinePlayers', source)
     cb({ success = true })
+end)
+
+-- Enhancement: Add a heartbeat to periodically save data and check system health
+Citizen.CreateThread(function()
+    while true do
+        Citizen.Wait(300000) -- 5 minutes
+        
+        local reportCount = 0
+        for _ in pairs(activeReports) do reportCount = reportCount + 1 end
+        
+        Logger.info("SERVER", string.format("System heartbeat - Active reports: %d", reportCount))
+        Logger.info("SERVER", string.format("Online players: %d", #GetPlayers()))
+        
+        -- Here we could add automatic backup of data, performance metrics, etc.
+    end
 end)

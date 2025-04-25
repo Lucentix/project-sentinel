@@ -1,10 +1,17 @@
+-- First load our logger
+local resourceName = GetCurrentResourceName()
+local Logger = exports[resourceName]:getLogger()
+
 local isReportMenuOpen = false
 local isAdminMenuOpen = false
 local playerAdminRank = nil
 local isInAdminMode = false
 
+-- Register key mappings and commands
 RegisterKeyMapping('project-sentinel:report', 'Open Report Menu', 'keyboard', 'F3')
+
 RegisterCommand('project-sentinel:report', function()
+    Logger.info("CLIENT", "Report command triggered")
     if isReportMenuOpen then
         CloseReportMenu()
     else
@@ -13,37 +20,32 @@ RegisterCommand('project-sentinel:report', function()
 end, false)
 
 RegisterCommand('admin', function()
-    print("[client] Attempting to open admin panel...")
+    Logger.info("CLIENT", "Admin command triggered, checking permissions...")
     TriggerServerEvent('project-sentinel:checkAdminPermission')
 end, false)
 
-RegisterNetEvent('project-sentinel:openReportMenu')
-AddEventHandler('project-sentinel:openReportMenu', function()
-    OpenReportMenu()
-end)
-
 function OpenReportMenu()
-    print("[client] Opening report menu...")
+    Logger.info("CLIENT", "Opening report menu")
     isReportMenuOpen = true
     SendNUIMessage({
         action = "openReportUI"
     })
     SetNuiFocus(true, true)
-    print("[client] Report menu opened and NUI focus set")
+    Logger.success("CLIENT", "Report menu opened and focus set to NUI")
 end
 
 function CloseReportMenu()
-    print("[client] Closing report menu...")
+    Logger.info("CLIENT", "Closing report menu")
     isReportMenuOpen = false
     SendNUIMessage({
         action = "closeReportMenu"
     })
     SetNuiFocus(false, false)
-    print("[client] Report menu closed and NUI focus removed")
+    Logger.success("CLIENT", "Report menu closed and NUI focus removed")
 end
 
 function OpenAdminPanel(rank)
-    print("[client] Opening admin panel with rank: " .. tostring(rank))
+    Logger.info("CLIENT", "Opening admin panel with rank: " .. tostring(rank))
     isAdminMenuOpen = true
     playerAdminRank = rank
     SendNUIMessage({
@@ -51,50 +53,59 @@ function OpenAdminPanel(rank)
         adminRank = rank
     })
     SetNuiFocus(true, true)
-    print("[client] Admin panel opened and NUI focus set")
     
-    print("[client] Requesting server stats...")
+    Logger.info("CLIENT", "Requesting server statistics")
     TriggerServerEvent('project-sentinel:getServerStats')
-    print("[client] Requesting reports...")
+    
+    Logger.info("CLIENT", "Requesting active reports")
     TriggerServerEvent('project-sentinel:getReports')
-    print("[client] Requesting online players...")
+    
+    Logger.info("CLIENT", "Requesting online players data")
     TriggerServerEvent('project-sentinel:getOnlinePlayers')
     
     if rank == "administrator" or rank == "management" or rank == "leitung" then
-        print("[client] Requesting admin users list...")
+        Logger.info("CLIENT", "Requesting admin users list")
         TriggerServerEvent('project-sentinel:getAdminUsers')
     end
+    
+    Logger.success("CLIENT", "Admin panel initialization complete")
 end
 
 function CloseAdminPanel()
-    print("[client] Closing admin panel...")
+    Logger.info("CLIENT", "Closing admin panel")
     isAdminMenuOpen = false
     SendNUIMessage({
         action = "closeAdminPanel"
     })
     SetNuiFocus(false, false)
-    print("[client] Admin panel closed and NUI focus removed")
+    Logger.success("CLIENT", "Admin panel closed and NUI focus removed")
 end
 
 RegisterNUICallback('closeMenu', function(data, cb)
-    print("[client] NUI callback received: closeMenu")
+    Logger.info("CLIENT", "NUI callback: closeMenu received")
     if isReportMenuOpen then
+        Logger.info("CLIENT", "Closing report menu via NUI callback")
         CloseReportMenu()
     elseif isAdminMenuOpen then
+        Logger.info("CLIENT", "Closing admin menu via NUI callback")
         CloseAdminPanel()
     end
     cb('ok')
 end)
 
 RegisterNUICallback('submitReport', function(data, cb)
+    Logger.info("CLIENT", "NUI callback: submitReport received")
     local title = data.title
     local description = data.description
     
     if title and description and #title > 0 and #description > 0 then
+        Logger.info("CLIENT", "Submitting report: " .. title)
         TriggerServerEvent('project-sentinel:submitReport', title, description)
         CloseReportMenu()
         cb({ success = true })
+        Logger.success("CLIENT", "Report submitted successfully")
     else
+        Logger.warn("CLIENT", "Report submission failed: Invalid input")
         cb({ success = false, error = "Please fill in all fields" })
     end
 end)
@@ -186,13 +197,21 @@ end)
 
 RegisterNetEvent('project-sentinel:openAdminPanel')
 AddEventHandler('project-sentinel:openAdminPanel', function(rank)
-    print("[client] Received event to open admin panel with rank: " .. tostring(rank))
+    Logger.info("CLIENT", "Received event to open admin panel with rank: " .. tostring(rank))
     OpenAdminPanel(rank)
 end)
 
 RegisterNetEvent('project-sentinel:receiveServerStats')
 AddEventHandler('project-sentinel:receiveServerStats', function(stats)
-    print("[client] Received server stats")
+    Logger.info("CLIENT", "Received server statistics data")
+    
+    local playersInfo = string.format("Players: %d/%d", stats.players.online, stats.players.max)
+    local reportsInfo = string.format("Reports: %d total (%d open, %d in progress, %d closed)", 
+        stats.reports.total, stats.reports.open, stats.reports.inProgress, stats.reports.closed)
+    
+    Logger.debug("CLIENT", "Stats details - " .. playersInfo)
+    Logger.debug("CLIENT", "Stats details - " .. reportsInfo)
+    
     SendNUIMessage({
         action = "receiveServerStats",
         stats = stats
@@ -201,7 +220,19 @@ end)
 
 RegisterNetEvent('project-sentinel:receiveReports')
 AddEventHandler('project-sentinel:receiveReports', function(reports)
-    print("[client] Received " .. #reports .. " reports")
+    Logger.info("CLIENT", string.format("Received %d reports from server", #reports))
+    
+    -- Log some details about the reports
+    local openCount, inProgressCount, closedCount = 0, 0, 0
+    for _, report in ipairs(reports) do
+        if report.status == "open" then openCount = openCount + 1
+        elseif report.status == "in_progress" then inProgressCount = inProgressCount + 1
+        elseif report.status == "closed" then closedCount = closedCount + 1 end
+    end
+    
+    Logger.debug("CLIENT", string.format("Reports breakdown: %d open, %d in progress, %d closed", 
+        openCount, inProgressCount, closedCount))
+    
     SendNUIMessage({
         action = "receiveReports",
         reports = reports
@@ -210,7 +241,7 @@ end)
 
 RegisterNetEvent('project-sentinel:receivePlayerInventory')
 AddEventHandler('project-sentinel:receivePlayerInventory', function(data)
-    print("[client] Received inventory for player ID: " .. tostring(data.playerId))
+    Logger.info("CLIENT", "Received inventory for player ID: " .. tostring(data.playerId))
     SendNUIMessage({
         action = "receivePlayerInventory",
         data = data
@@ -219,7 +250,7 @@ end)
 
 RegisterNetEvent('project-sentinel:receiveOnlinePlayers')
 AddEventHandler('project-sentinel:receiveOnlinePlayers', function(players)
-    print("[client] Received " .. #players .. " online players")
+    Logger.info("CLIENT", string.format("Received %d online players data", #players))
     SendNUIMessage({
         action = "receiveOnlinePlayers",
         players = players
@@ -228,7 +259,7 @@ end)
 
 RegisterNetEvent('project-sentinel:receiveAdminUsers')
 AddEventHandler('project-sentinel:receiveAdminUsers', function(adminUsers)
-    print("[client] Received " .. #adminUsers .. " admin users")
+    Logger.info("CLIENT", string.format("Received %d admin users data", #adminUsers))
     SendNUIMessage({
         action = "receiveAdminUsers",
         adminUsers = adminUsers
@@ -237,9 +268,18 @@ end)
 
 RegisterNetEvent('project-sentinel:teleportTo')
 AddEventHandler('project-sentinel:teleportTo', function(x, y, z)
+    Logger.info("CLIENT", string.format("Teleporting to coordinates: %.2f, %.2f, %.2f", x, y, z))
     local playerPed = PlayerPedId()
     DoScreenFadeOut(500)
     Wait(600)
     SetEntityCoords(playerPed, x, y, z)
     DoScreenFadeIn(500)
+    Logger.success("CLIENT", "Teleport completed successfully")
+end)
+
+-- Hook into game initialization
+Citizen.CreateThread(function()
+    Logger.info("CLIENT", "Project Sentinel client initializing")
+    -- Add any initialization code here
+    Logger.success("CLIENT", "Project Sentinel client initialized successfully")
 end)

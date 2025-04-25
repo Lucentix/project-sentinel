@@ -14,16 +14,19 @@ RegisterCommand('setrank', function(source, args, rawCommand)
     local targetPlayer = args[1]
     local rank = args[2]
     
+    print("[CLIENT] Attempting to set rank " .. rank .. " for player " .. targetPlayer)
     TriggerServerEvent('project-sentinel:setAdminRank', targetPlayer, rank)
 end, false)
 
 -- Command to check your current admin rank
 RegisterCommand('myrank', function(source, args, rawCommand)
+    print("[CLIENT] Checking my admin rank")
     TriggerServerEvent('project-sentinel:checkMyRank')
 end, false)
 
 -- Command to list all available admin ranks
 RegisterCommand('listranks', function(source, args, rawCommand)
+    print("[CLIENT] Requesting list of available ranks")
     TriggerServerEvent('project-sentinel:listAvailableRanks')
 end, false)
 
@@ -39,5 +42,8 @@ RegisterCommand('removerank', function(source, args, rawCommand)
     end
 
     local targetPlayer = args[1]
+    print("[CLIENT] Attempting to remove rank from player " .. targetPlayer)
     TriggerServerEvent('project-sentinel:removeAdminRank', targetPlayer)
 end, false)
+
+print("[CLIENT] Admin commands registered")

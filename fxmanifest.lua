@@ -7,12 +7,21 @@ version '1.0.0'
 
 ui_page 'web/build/index.html'
 
+shared_scripts {
+    'shared/logger.lua'
+}
+
 client_scripts {
-    'client/*.lua'
+    'client/main.lua',
+    'client/commands.lua',
+    'client/debug_tools.lua'
 }
 
 server_scripts {
-    'server/*.lua'
+    'server/json_storage.lua',
+    'server/bootstrapper.lua',
+    'server/main.lua',
+    'server/permission_handler.lua'
 }
 
 files {
