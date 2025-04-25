@@ -47,7 +47,10 @@ const AdminPanel = ({ adminRank, onClose }) => {
   console.log('[React] AdminPanel rendering with rank:', adminRank);
   
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [serverStats, setServerStats] = useState(null);
+  const [serverStats, setServerStats] = useState({ 
+    players: { online: 0, max: 32 }, 
+    reports: { total: 0, open: 0, inProgress: 0, closed: 0 }
+  });
   const [reports, setReports] = useState([]);
   const [players, setPlayers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -72,29 +75,46 @@ const AdminPanel = ({ adminRank, onClose }) => {
 
   useNuiEvent('receiveServerStats', (data) => {
     console.log('[React] Received server stats:', data);
-    setServerStats(data);
+    if (data && typeof data === 'object') {
+      setServerStats(data);
+    } else {
+      console.error('[React] Invalid server stats received:', data);
+    }
   });
   
   useNuiEvent('receiveReports', (data) => {
     console.log('[React] Received reports:', data);
-    setReports(data);
+    if (Array.isArray(data)) {
+      setReports(data);
+    } else {
+      console.error('[React] Invalid reports data received:', data);
+      setReports([]);
+    }
   });
   
   useNuiEvent('receiveOnlinePlayers', (data) => {
     console.log('[React] Received online players:', data);
-    setPlayers(data);
+    if (Array.isArray(data)) {
+      setPlayers(data);
+    } else {
+      console.error('[React] Invalid players data received:', data);
+      setPlayers([]);
+    }
   });
   
   useNuiEvent('receivePlayerInventory', (data) => {
     console.log('[React] Received player inventory:', data);
-    setPlayers(prevPlayers => {
-      return prevPlayers.map(player => {
-        if (player.id === data.playerId) {
-          return { ...player, inventory: data.inventory };
-        }
-        return player;
+    if (data && data.playerId) {
+      setPlayers(prevPlayers => {
+        if (!Array.isArray(prevPlayers)) return prevPlayers;
+        return prevPlayers.map(player => {
+          if (player.id === data.playerId) {
+            return { ...player, inventory: data.inventory || [] };
+          }
+          return player;
+        });
       });
-    });
+    }
   });
 
   useEffect(() => {

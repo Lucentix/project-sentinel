@@ -21,7 +21,10 @@ import {
   IconBriefcase
 } from '@tabler/icons-react';
 
-const PlayersTab = ({ players, adminRank }) => {
+const PlayersTab = ({ players = [], adminRank }) => {
+  // Make sure players is always an array
+  const safePlayers = Array.isArray(players) ? players : [];
+
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState('info');
@@ -169,9 +172,9 @@ const PlayersTab = ({ players, adminRank }) => {
   return (
     <>
       <Paper p="md" radius="md">
-        <Text size="xl" weight={700} mb="md">Online Players ({players.length})</Text>
+        <Text size="xl" weight={700} mb="md">Online Players ({safePlayers.length})</Text>
         
-        {players.length === 0 ? (
+        {safePlayers.length === 0 ? (
           <Text color="dimmed" align="center" my={50}>
             No players currently online.
           </Text>
@@ -185,10 +188,10 @@ const PlayersTab = ({ players, adminRank }) => {
               </tr>
             </thead>
             <tbody>
-              {players.map((player) => (
+              {safePlayers.map((player) => (
                 <tr key={player.id}>
                   <td>{player.id}</td>
-                  <td>{player.name}</td>
+                  <td>{player.name || "Unknown"}</td>
                   <td>
                     <Group spacing={4}>
                       <Tooltip label="View Player">

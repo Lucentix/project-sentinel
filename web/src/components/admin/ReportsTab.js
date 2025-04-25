@@ -21,7 +21,7 @@ import {
   IconCopy
 } from '@tabler/icons-react';
 
-const ReportsTab = ({ reports, adminRank }) => {
+const ReportsTab = ({ reports = [], adminRank }) => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState('');
@@ -223,7 +223,7 @@ const ReportsTab = ({ reports, adminRank }) => {
           </Table>
         )}
       </Paper>
-
+      
       {/* Report details modal */}
       <Modal
         opened={modalOpen}

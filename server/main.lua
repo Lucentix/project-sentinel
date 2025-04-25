@@ -299,32 +299,41 @@ AddEventHandler('project-sentinel:checkAdminPermission', function()
     end
 end)
 
+-- Fix the server stats structure to ensure all expected properties exist
 RegisterNetEvent('project-sentinel:getServerStats')
 AddEventHandler('project-sentinel:getServerStats', function()
     local source = source
-    print("[server] Player ID " .. source .. " requested server stats")
+    Logger.info("SERVER", "Player ID " .. source .. " requested server stats")
     local adminRank = GetPlayerAdminRank(source)
     
     if not adminRank then 
-        print("[server] Request denied - no admin rank")
+        Logger.warn("SERVER", "Request denied - no admin rank")
         return 
     end
     
-    print("[server] Gathering server stats...")
+    Logger.info("SERVER", "Gathering server stats...")
+    -- Ensure all properties exist with default values to prevent undefined errors
     local stats = {
         players = {
             online = #GetPlayers(),
             max = GetConvarInt("sv_maxclients", 32)
         },
         reports = {
-            total = reportCounter,
+            total = reportCounter or 0,
             open = 0,
             inProgress = 0,
             closed = 0
+        },
+        -- Add additional properties with defaults to prevent undefined errors
+        server = {
+            name = GetConvar("sv_hostname", "Project Sentinel"),
+            uptime = os.time() - GetResourceMetadata(GetCurrentResourceName(), "start_time", 0) or 0,
+            version = GetResourceMetadata(GetCurrentResourceName(), "version", "1.0.0") or "1.0.0"
         }
     }
     
-    for _, report in pairs(activeReports) do
+    -- Count reports by status
+    for _, report in pairs(activeReports or {}) do
         if report.status == "open" then
             stats.reports.open = stats.reports.open + 1
         elseif report.status == "in_progress" then
@@ -334,31 +343,34 @@ AddEventHandler('project-sentinel:getServerStats', function()
         end
     end
     
-    print("[server] Sending server stats to player ID " .. source)
+    Logger.info("SERVER", "Sending server stats to player ID " .. source)
     TriggerClientEvent('project-sentinel:receiveServerStats', source, stats)
 end)
 
+-- Fix the reports format to ensure it's always an array
 RegisterNetEvent('project-sentinel:getReports')
 AddEventHandler('project-sentinel:getReports', function()
     local source = source
-    print("[server] Player ID " .. source .. " requested reports")
+    Logger.info("SERVER", "Player ID " .. source .. " requested reports")
     local adminRank = GetPlayerAdminRank(source)
     
     if not adminRank or not adminRanks[adminRank] or not adminRanks[adminRank].canSeeReports then
-        print("[server] Request denied - insufficient permissions")
+        Logger.warn("SERVER", "Request denied - insufficient permissions")
         return
     end
     
     local reportsArray = {}
-    for _, report in pairs(activeReports) do
+    for _, report in pairs(activeReports or {}) do
         table.insert(reportsArray, report)
     end
     
+    -- Sort reports by submission time (newest first)
     table.sort(reportsArray, function(a, b)
-        return a.submittedAt > b.submittedAt
+        return (a.submittedAt or 0) > (b.submittedAt or 0)
     end)
     
-    print("[server] Sending " .. #reportsArray .. " reports to player ID " .. source)
+    Logger.info("SERVER", "Sending " .. #reportsArray .. " reports to player ID " .. source)
+    -- Ensure we're always sending an array, even if empty
     TriggerClientEvent('project-sentinel:receiveReports', source, reportsArray)
 end)
 
@@ -599,14 +611,15 @@ AddEventHandler('project-sentinel:updatePlayerRank', function(targetIdentifier, 
     end
 end)
 
+-- Fix the online players format to ensure it's always an array
 RegisterNetEvent('project-sentinel:getOnlinePlayers')
 AddEventHandler('project-sentinel:getOnlinePlayers', function()
     local source = source
-    print("[server] Player ID " .. source .. " requested online players")
+    Logger.info("SERVER", "Player ID " .. source .. " requested online players")
     local adminRank = GetPlayerAdminRank(source)
     
     if not adminRank or not adminRanks[adminRank] then
-        print("[server] Request denied - insufficient permissions")
+        Logger.warn("SERVER", "Request denied - insufficient permissions")
         return
     end
     
@@ -614,26 +627,36 @@ AddEventHandler('project-sentinel:getOnlinePlayers', function()
     for _, playerId in ipairs(GetPlayers()) do
         table.insert(players, {
             id = playerId,
-            name = GetPlayerName(playerId),
-            identifier = GetPlayerIdentifier(playerId, 0)
+            name = GetPlayerName(playerId) or "Unknown",
+            identifier = GetPlayerIdentifier(playerId, 0) or "unknown"
         })
     end
     
-    print("[server] Sending " .. #players .. " online players to player ID " .. source)
+    Logger.info("SERVER", "Sending " .. #players .. " online players to player ID " .. source)
+    -- Ensure we're always sending an array, even if empty
     TriggerClientEvent('project-sentinel:receiveOnlinePlayers', source, players)
 end)
 
+-- Fix the admin users format
 RegisterNetEvent('project-sentinel:getAdminUsers')
 AddEventHandler('project-sentinel:getAdminUsers', function()
     local source = source
+    Logger.info("SERVER", "Player ID " .. source .. " requested admin users")
     local adminRank = GetPlayerAdminRank(source)
     
     if not adminRank or not adminRanks[adminRank] or not adminRanks[adminRank].canManagePermissions then
+        Logger.warn("SERVER", "Request denied - insufficient permissions")
         return
     end
     
     local adminUsers = Storage.Read('admin_ranks')
     
+    -- Ensure adminUsers is always an array
+    if not adminUsers or type(adminUsers) ~= "table" then
+        adminUsers = {}
+    end
+    
+    Logger.info("SERVER", "Sending " .. #adminUsers .. " admin users to player ID " .. source)
     TriggerClientEvent('project-sentinel:receiveAdminUsers', source, adminUsers)
 end)
 

@@ -18,7 +18,9 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const DashboardTab = ({ stats }) => {
-  if (!stats) {
+  console.log("DashboardTab rendering with stats:", stats);
+  
+  if (!stats || typeof stats !== 'object') {
     return (
       <Text color="dimmed" align="center" mt={50}>
         Loading server statistics...
@@ -26,15 +28,19 @@ const DashboardTab = ({ stats }) => {
     );
   }
 
-  // Calculate report percentage
-  const totalReports = stats.reports.total || 0;
-  const openReports = stats.reports.open || 0;
-  const inProgressReports = stats.reports.inProgress || 0;
-  const closedReports = stats.reports.closed || 0;
+  // Ensure all nested objects and properties exist
+  const players = stats.players || { online: 0, max: 32 };
+  const reports = stats.reports || { total: 0, open: 0, inProgress: 0, closed: 0 };
   
-  // Calculate player percentage
-  const onlinePlayers = stats.players.online || 0;
-  const maxPlayers = stats.players.max || 32;
+  // Calculate report percentage safely
+  const totalReports = reports.total || 0;
+  const openReports = reports.open || 0;
+  const inProgressReports = reports.inProgress || 0;
+  const closedReports = reports.closed || 0;
+  
+  // Calculate player percentage safely
+  const onlinePlayers = players.online || 0;
+  const maxPlayers = players.max || 32;
   const playerPercentage = Math.round((onlinePlayers / maxPlayers) * 100);
   
   // Mock data for charts
