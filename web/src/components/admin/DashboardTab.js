@@ -20,6 +20,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis
 const DashboardTab = ({ stats }) => {
   console.log("DashboardTab rendering with stats:", stats);
   
+  // Check if stats is empty or invalid
   if (!stats || typeof stats !== 'object') {
     return (
       <Text color="dimmed" align="center" mt={50}>
@@ -28,16 +29,10 @@ const DashboardTab = ({ stats }) => {
     );
   }
 
-  // Ensure all nested objects and properties exist with proper defaults
+  // Use default values to prevent errors
   const players = stats.players || { online: 0, max: 32 };
   const reports = stats.reports || { total: 0, open: 0, inProgress: 0, closed: 0 };
   const server = stats.server || { name: "Unknown", uptime: 0, version: "1.0.0" };
-  
-  console.log("Processing stats:", {
-    players: players,
-    reports: reports,
-    server: server
-  });
   
   // Calculate report percentage safely
   const totalReports = reports.total || 0;
@@ -50,12 +45,17 @@ const DashboardTab = ({ stats }) => {
   const maxPlayers = players.max || 32;
   const playerPercentage = Math.round((onlinePlayers / maxPlayers) * 100);
   
-  // Mock data for charts
+  // Mock data for charts - prevent empty data errors
   const reportStatusData = [
     { name: 'Open', value: openReports, color: '#FF9800' },
     { name: 'In Progress', value: inProgressReports, color: '#2196F3' },
     { name: 'Closed', value: closedReports, color: '#4CAF50' },
-  ];
+  ].filter(item => item.value > 0);
+  
+  // If no data, add a placeholder item
+  if (reportStatusData.length === 0) {
+    reportStatusData.push({ name: 'No Data', value: 1, color: '#757575' });
+  }
   
   const playerActivityData = [
     { name: '00:00', players: 18 },

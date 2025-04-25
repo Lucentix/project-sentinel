@@ -73,37 +73,30 @@ const AdminPanel = ({ adminRank, onClose }) => {
     }
   }, [adminRank]);
 
+  // Fix the event handlers to properly handle the data
   useNuiEvent('receiveServerStats', (data) => {
     console.log('[React] Received server stats:', data);
-    
-    // Extract only the stats object, not the whole event
-    if (data && data.stats && typeof data.stats === 'object') {
-      setServerStats(data.stats);
-    } else {
-      console.error('[React] Invalid server stats received:', data);
+    if (data && typeof data === 'object') {
+      setServerStats(data);
     }
   });
   
   useNuiEvent('receiveReports', (data) => {
     console.log('[React] Received reports:', data);
-    
-    // Extract only the reports array from the event
-    if (data && Array.isArray(data.reports)) {
-      setReports(data.reports);
+    // data should already be an array here because of our useNuiEvent handler
+    if (Array.isArray(data)) {
+      setReports(data);
     } else {
-      console.error('[React] Invalid reports data received:', data);
       setReports([]);
     }
   });
   
   useNuiEvent('receiveOnlinePlayers', (data) => {
     console.log('[React] Received online players:', data);
-    
-    // Extract only the players array from the event
-    if (data && Array.isArray(data.players)) {
-      setPlayers(data.players);
+    // data should already be an array here because of our useNuiEvent handler
+    if (Array.isArray(data)) {
+      setPlayers(data);
     } else {
-      console.error('[React] Invalid players data received:', data);
       setPlayers([]);
     }
   });

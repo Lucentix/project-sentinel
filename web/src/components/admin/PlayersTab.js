@@ -21,13 +21,13 @@ import {
   IconBriefcase
 } from '@tabler/icons-react';
 
-const PlayersTab = ({ players, adminRank }) => {
+const PlayersTab = ({ players = [], adminRank }) => {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState('info');
   const [processingAction, setProcessingAction] = useState(false);
   
-  // Make sure players is always an array
+  // Make sure players is an array
   const safePlayers = Array.isArray(players) ? players : [];
   
   console.log("PlayersTab rendering with players:", safePlayers);

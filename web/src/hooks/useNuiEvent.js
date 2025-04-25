@@ -12,16 +12,20 @@ export const useNuiEvent = (action, handler) => {
       if (data && data.action === action) {
         console.log(`[NUI] Handling action: ${action}`);
         
-        // For arrays, ensure we're directly passing the array, not a wrapper object
-        if (action === 'receiveReports' && data.reports) {
-          handler({ reports: data.reports });
-        } else if (action === 'receiveOnlinePlayers' && data.players) {
-          handler({ players: data.players });
-        } else if (action === 'receiveServerStats' && data.stats) {
-          handler({ stats: data.stats });
-        } else {
-          // Default handler for other events
-          handler(data);
+        try {
+          // Process specific data types
+          if (action === 'receiveReports' && data.reports) {
+            handler(Array.isArray(data.reports) ? data.reports : []);
+          } else if (action === 'receiveOnlinePlayers' && data.players) {
+            handler(Array.isArray(data.players) ? data.players : []);
+          } else if (action === 'receiveServerStats' && data.stats) {
+            handler(data.stats);
+          } else {
+            // Default handler for other events
+            handler(data);
+          }
+        } catch (error) {
+          console.error(`[NUI] Error processing ${action} event:`, error);
         }
       }
     }

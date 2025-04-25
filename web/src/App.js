@@ -1,8 +1,57 @@
+// Add error boundary to prevent app from crashing
+
 import React, { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import { useNuiEvent } from './hooks/useNuiEvent';
 import ReportPanel from './components/report/ReportPanel';
 import AdminPanel from './components/admin/AdminPanel';
+
+// Error boundary to catch and report UI errors
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Error caught by boundary:", error, errorInfo);
+    
+    // Report error to client
+    fetch('https://project-sentinel/reportError', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        message: error.toString(),
+        stack: errorInfo?.componentStack || "No stack available" 
+      })
+    }).catch(err => console.error("Failed to report error:", err));
+  }
+
+  render() {
+    if (this.state.hasError) {
+      // Fallback UI when an error occurs
+      return (
+        <div style={{ 
+          padding: '20px', 
+          background: 'rgba(0,0,0,0.8)', 
+          color: 'white',
+          margin: '20px',
+          borderRadius: '5px',
+          border: '1px solid red'
+        }}>
+          <h2>Something went wrong</h2>
+          <p>Please use the /reset_admin command to restart the UI</p>
+        </div>
+      );
+    }
+
+    return this.props.children; 
+  }
+}
 
 const AppContainer = styled.div`
   display: flex;
@@ -91,17 +140,15 @@ function App() {
     }
   }, []);
 
-  if (!visible) {
-    console.log('[React] App not visible, returning null');
-    return null;
-  }
+  if (!visible) return null;
 
-  console.log('[React] Rendering app with view:', currentView);
   return (
-    <AppContainer className="fade-in">
-      {currentView === 'report' && <ReportPanel onClose={handleClose} />}
-      {currentView === 'admin' && <AdminPanel adminRank={adminRank} onClose={handleClose} />}
-    </AppContainer>
+    <ErrorBoundary>
+      <AppContainer className="fade-in">
+        {currentView === 'report' && <ReportPanel onClose={handleClose} />}
+        {currentView === 'admin' && <AdminPanel adminRank={adminRank} onClose={handleClose} />}
+      </AppContainer>
+    </ErrorBoundary>
   );
 }
 

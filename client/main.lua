@@ -243,7 +243,6 @@ AddEventHandler('project-sentinel:receiveServerStats', function(stats)
     Logger.debug("CLIENT", "Stats details - " .. playersInfo)
     Logger.debug("CLIENT", "Stats details - " .. reportsInfo)
     
-    -- Send only the stats object without wrapping it in another object
     SendNUIMessage({
         action = "receiveServerStats",
         stats = stats
@@ -266,19 +265,9 @@ AddEventHandler('project-sentinel:receiveReports', function(reports)
     Logger.debug("CLIENT", string.format("Reports breakdown: %d open, %d in progress, %d closed", 
         openCount, inProgressCount, closedCount))
     
-    -- Send only the reports array without wrapping it
     SendNUIMessage({
         action = "receiveReports",
         reports = reports
-    })
-end)
-
-RegisterNetEvent('project-sentinel:receivePlayerInventory')
-AddEventHandler('project-sentinel:receivePlayerInventory', function(data)
-    Logger.info("CLIENT", "Received inventory for player ID: " .. tostring(data.playerId))
-    SendNUIMessage({
-        action = "receivePlayerInventory",
-        data = data
     })
 end)
 
@@ -287,7 +276,6 @@ AddEventHandler('project-sentinel:receiveOnlinePlayers', function(players)
     Logger.info("CLIENT", string.format("Received %d online players data", #players))
     Logger.debug("CLIENT", "Raw players data: " .. json.encode(players))
     
-    -- Send only the players array without wrapping it
     SendNUIMessage({
         action = "receiveOnlinePlayers",
         players = players

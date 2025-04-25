@@ -21,14 +21,14 @@ import {
   IconCopy
 } from '@tabler/icons-react';
 
-const ReportsTab = ({ reports, adminRank }) => {
+const ReportsTab = ({ reports = [], adminRank }) => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState('');
   const [reportNotes, setReportNotes] = useState('');
   const [processingAction, setProcessingAction] = useState(false);
 
-  // Ensure reports is always an array
+  // Ensure reports is an array
   const safeReports = Array.isArray(reports) ? reports : [];
   
   console.log("ReportsTab rendering with reports:", safeReports);

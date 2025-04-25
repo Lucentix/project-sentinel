@@ -13,9 +13,9 @@ shared_scripts {
 
 client_scripts {
     'client/main.lua',
+    'client/error_handler.lua',  -- Add error handler
     'client/commands.lua',
-    'client/debug_tools.lua',
-    'client/data_debugger.lua' -- Added the new debug file
+    'client/debug_tools.lua'
 }
 
 server_scripts {
