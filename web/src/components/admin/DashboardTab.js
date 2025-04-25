@@ -18,7 +18,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const DashboardTab = ({ stats }) => {
-  console.log("DashboardTab rendering with stats:", stats);
+  console.log("DashboardTab rendering with stats:", JSON.stringify(stats));
   
   if (!stats || typeof stats !== 'object') {
     return (
@@ -28,9 +28,16 @@ const DashboardTab = ({ stats }) => {
     );
   }
 
-  // Ensure all nested objects and properties exist
+  // Ensure all nested objects and properties exist with proper defaults
   const players = stats.players || { online: 0, max: 32 };
   const reports = stats.reports || { total: 0, open: 0, inProgress: 0, closed: 0 };
+  const server = stats.server || { name: "Unknown", uptime: 0, version: "1.0.0" };
+  
+  console.log("Processing stats:", {
+    players: players,
+    reports: reports,
+    server: server
+  });
   
   // Calculate report percentage safely
   const totalReports = reports.total || 0;

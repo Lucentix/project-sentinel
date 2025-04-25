@@ -14,7 +14,8 @@ shared_scripts {
 client_scripts {
     'client/main.lua',
     'client/commands.lua',
-    'client/debug_tools.lua'
+    'client/debug_tools.lua',
+    'client/data_debugger.lua' -- Added the new debug file
 }
 
 server_scripts {

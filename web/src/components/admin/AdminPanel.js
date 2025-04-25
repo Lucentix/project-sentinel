@@ -74,18 +74,25 @@ const AdminPanel = ({ adminRank, onClose }) => {
   }, [adminRank]);
 
   useNuiEvent('receiveServerStats', (data) => {
-    console.log('[React] Received server stats:', data);
+    console.log('[React] Received server stats:', JSON.stringify(data));
     if (data && typeof data === 'object') {
-      setServerStats(data);
+      // Clone the data to ensure we're not modifying the original
+      const processedStats = JSON.parse(JSON.stringify(data));
+      
+      // Ensure all required properties exist
+      if (!processedStats.players) processedStats.players = { online: 0, max: 32 };
+      if (!processedStats.reports) processedStats.reports = { total: 0, open: 0, inProgress: 0, closed: 0 };
+      
+      setServerStats(processedStats);
     } else {
       console.error('[React] Invalid server stats received:', data);
     }
   });
   
   useNuiEvent('receiveReports', (data) => {
-    console.log('[React] Received reports:', data);
+    console.log('[React] Received reports:', JSON.stringify(data));
     if (Array.isArray(data)) {
-      setReports(data);
+      setReports([...data]);
     } else {
       console.error('[React] Invalid reports data received:', data);
       setReports([]);
@@ -93,9 +100,9 @@ const AdminPanel = ({ adminRank, onClose }) => {
   });
   
   useNuiEvent('receiveOnlinePlayers', (data) => {
-    console.log('[React] Received online players:', data);
+    console.log('[React] Received online players:', JSON.stringify(data));
     if (Array.isArray(data)) {
-      setPlayers(data);
+      setPlayers([...data]);
     } else {
       console.error('[React] Invalid players data received:', data);
       setPlayers([]);

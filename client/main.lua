@@ -230,9 +230,11 @@ AddEventHandler('project-sentinel:openAdminPanel', function(rank)
     OpenAdminPanel(rank)
 end)
 
+-- Add extra debug for received data
 RegisterNetEvent('project-sentinel:receiveServerStats')
 AddEventHandler('project-sentinel:receiveServerStats', function(stats)
     Logger.info("CLIENT", "Received server statistics data")
+    Logger.debug("CLIENT", "Raw stats data: " .. json.encode(stats))
     
     local playersInfo = string.format("Players: %d/%d", stats.players.online, stats.players.max)
     local reportsInfo = string.format("Reports: %d total (%d open, %d in progress, %d closed)", 
@@ -250,6 +252,7 @@ end)
 RegisterNetEvent('project-sentinel:receiveReports')
 AddEventHandler('project-sentinel:receiveReports', function(reports)
     Logger.info("CLIENT", string.format("Received %d reports from server", #reports))
+    Logger.debug("CLIENT", "Raw reports data: " .. json.encode(reports))
     
     -- Log some details about the reports
     local openCount, inProgressCount, closedCount = 0, 0, 0
@@ -280,6 +283,8 @@ end)
 RegisterNetEvent('project-sentinel:receiveOnlinePlayers')
 AddEventHandler('project-sentinel:receiveOnlinePlayers', function(players)
     Logger.info("CLIENT", string.format("Received %d online players data", #players))
+    Logger.debug("CLIENT", "Raw players data: " .. json.encode(players))
+    
     SendNUIMessage({
         action = "receiveOnlinePlayers",
         players = players

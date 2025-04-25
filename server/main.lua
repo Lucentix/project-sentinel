@@ -318,38 +318,43 @@ AddEventHandler('project-sentinel:getServerStats', function()
     end
     
     Logger.info("SERVER", "Gathering server stats...")
-    -- Ensure all properties exist with default values to prevent undefined errors
+    
+    -- Recalculate the stats every time to ensure accurate data
+    local reportCounts = {open = 0, inProgress = 0, closed = 0, total = 0}
+    
+    -- Count reports directly from activeReports
+    for _, report in pairs(activeReports or {}) do
+        reportCounts.total = reportCounts.total + 1
+        
+        if report.status == "open" then
+            reportCounts.open = reportCounts.open + 1
+        elseif report.status == "in_progress" then
+            reportCounts.inProgress = reportCounts.inProgress + 1
+        elseif report.status == "closed" then
+            reportCounts.closed = reportCounts.closed + 1
+        end
+    end
+    
+    -- Debug output
+    Logger.debug("SERVER", string.format("Report stats: Total=%d, Open=%d, InProgress=%d, Closed=%d",
+        reportCounts.total, reportCounts.open, reportCounts.inProgress, reportCounts.closed))
+    
     local stats = {
         players = {
             online = #GetPlayers(),
             max = GetConvarInt("sv_maxclients", 32)
         },
-        reports = {
-            total = reportCounter or 0,
-            open = 0,
-            inProgress = 0,
-            closed = 0
-        },
-        -- Add additional properties with defaults to prevent undefined errors
+        reports = reportCounts,
         server = {
             name = GetConvar("sv_hostname", "Project Sentinel"),
-            uptime = os.time() - GetResourceMetadata(GetCurrentResourceName(), "start_time", 0) or 0,
-            version = GetResourceMetadata(GetCurrentResourceName(), "version", "1.0.0") or "1.0.0"
+            uptime = os.time() - (GetResourceState(GetCurrentResourceName()) == "started" and GetResourceMetadata(GetCurrentResourceName(), "start_time", 0) or os.time()),
+            version = GetResourceMetadata(GetCurrentResourceName(), "version", "1.0.0")
         }
     }
     
-    -- Count reports by status
-    for _, report in pairs(activeReports or {}) do
-        if report.status == "open" then
-            stats.reports.open = stats.reports.open + 1
-        elseif report.status == "in_progress" then
-            stats.reports.inProgress = stats.reports.inProgress + 1
-        elseif report.status == "closed" then
-            stats.reports.closed = stats.reports.closed + 1
-        end
-    end
+    -- Debug log the exact data we're sending
+    Logger.debug("SERVER", "Sending stats: " .. json.encode(stats))
     
-    Logger.info("SERVER", "Sending server stats to player ID " .. source)
     TriggerClientEvent('project-sentinel:receiveServerStats', source, stats)
 end)
 
@@ -366,8 +371,16 @@ AddEventHandler('project-sentinel:getReports', function()
     end
     
     local reportsArray = {}
-    for _, report in pairs(activeReports or {}) do
+    
+    -- Convert activeReports table to array
+    for id, report in pairs(activeReports or {}) do
         table.insert(reportsArray, report)
+    end
+    
+    -- Debug output
+    Logger.debug("SERVER", "Reports found: " .. #reportsArray)
+    if #reportsArray > 0 then
+        Logger.debug("SERVER", "First report: " .. json.encode(reportsArray[1]))
     end
     
     -- Sort reports by submission time (newest first)
