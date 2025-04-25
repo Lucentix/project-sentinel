@@ -18,7 +18,7 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const DashboardTab = ({ stats }) => {
-  console.log("DashboardTab rendering with stats:", JSON.stringify(stats));
+  console.log("DashboardTab rendering with stats:", stats);
   
   if (!stats || typeof stats !== 'object') {
     return (

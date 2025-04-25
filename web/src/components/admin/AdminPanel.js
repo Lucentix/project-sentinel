@@ -74,25 +74,22 @@ const AdminPanel = ({ adminRank, onClose }) => {
   }, [adminRank]);
 
   useNuiEvent('receiveServerStats', (data) => {
-    console.log('[React] Received server stats:', JSON.stringify(data));
-    if (data && typeof data === 'object') {
-      // Clone the data to ensure we're not modifying the original
-      const processedStats = JSON.parse(JSON.stringify(data));
-      
-      // Ensure all required properties exist
-      if (!processedStats.players) processedStats.players = { online: 0, max: 32 };
-      if (!processedStats.reports) processedStats.reports = { total: 0, open: 0, inProgress: 0, closed: 0 };
-      
-      setServerStats(processedStats);
+    console.log('[React] Received server stats:', data);
+    
+    // Extract only the stats object, not the whole event
+    if (data && data.stats && typeof data.stats === 'object') {
+      setServerStats(data.stats);
     } else {
       console.error('[React] Invalid server stats received:', data);
     }
   });
   
   useNuiEvent('receiveReports', (data) => {
-    console.log('[React] Received reports:', JSON.stringify(data));
-    if (Array.isArray(data)) {
-      setReports([...data]);
+    console.log('[React] Received reports:', data);
+    
+    // Extract only the reports array from the event
+    if (data && Array.isArray(data.reports)) {
+      setReports(data.reports);
     } else {
       console.error('[React] Invalid reports data received:', data);
       setReports([]);
@@ -100,9 +97,11 @@ const AdminPanel = ({ adminRank, onClose }) => {
   });
   
   useNuiEvent('receiveOnlinePlayers', (data) => {
-    console.log('[React] Received online players:', JSON.stringify(data));
-    if (Array.isArray(data)) {
-      setPlayers([...data]);
+    console.log('[React] Received online players:', data);
+    
+    // Extract only the players array from the event
+    if (data && Array.isArray(data.players)) {
+      setPlayers(data.players);
     } else {
       console.error('[React] Invalid players data received:', data);
       setPlayers([]);
@@ -111,12 +110,11 @@ const AdminPanel = ({ adminRank, onClose }) => {
   
   useNuiEvent('receivePlayerInventory', (data) => {
     console.log('[React] Received player inventory:', data);
-    if (data && data.playerId) {
+    if (data && data.data && data.data.playerId) {
       setPlayers(prevPlayers => {
-        if (!Array.isArray(prevPlayers)) return prevPlayers;
         return prevPlayers.map(player => {
-          if (player.id === data.playerId) {
-            return { ...player, inventory: data.inventory || [] };
+          if (player.id === data.data.playerId) {
+            return { ...player, inventory: data.data.inventory };
           }
           return player;
         });

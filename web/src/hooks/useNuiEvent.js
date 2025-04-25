@@ -11,7 +11,18 @@ export const useNuiEvent = (action, handler) => {
 
       if (data && data.action === action) {
         console.log(`[NUI] Handling action: ${action}`);
-        handler(data);
+        
+        // For arrays, ensure we're directly passing the array, not a wrapper object
+        if (action === 'receiveReports' && data.reports) {
+          handler({ reports: data.reports });
+        } else if (action === 'receiveOnlinePlayers' && data.players) {
+          handler({ players: data.players });
+        } else if (action === 'receiveServerStats' && data.stats) {
+          handler({ stats: data.stats });
+        } else {
+          // Default handler for other events
+          handler(data);
+        }
       }
     }
 

@@ -21,12 +21,17 @@ import {
   IconCopy
 } from '@tabler/icons-react';
 
-const ReportsTab = ({ reports = [], adminRank }) => {
+const ReportsTab = ({ reports, adminRank }) => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [reportStatus, setReportStatus] = useState('');
   const [reportNotes, setReportNotes] = useState('');
   const [processingAction, setProcessingAction] = useState(false);
+
+  // Ensure reports is always an array
+  const safeReports = Array.isArray(reports) ? reports : [];
+  
+  console.log("ReportsTab rendering with reports:", safeReports);
 
   // Function to get the badge color based on report status
   const getStatusColor = (status) => {
@@ -180,7 +185,7 @@ const ReportsTab = ({ reports = [], adminRank }) => {
       <Paper p="md" radius="md">
         <Text size="xl" weight={700} mb="md">Active Reports</Text>
         
-        {reports.length === 0 ? (
+        {safeReports.length === 0 ? (
           <Text color="dimmed" align="center" my={50}>
             No reports available.
           </Text>
@@ -197,7 +202,7 @@ const ReportsTab = ({ reports = [], adminRank }) => {
               </tr>
             </thead>
             <tbody>
-              {reports.map((report) => (
+              {safeReports.map((report) => (
                 <tr key={report.id}>
                   <td>#{report.id}</td>
                   <td>
@@ -223,7 +228,7 @@ const ReportsTab = ({ reports = [], adminRank }) => {
           </Table>
         )}
       </Paper>
-      
+
       {/* Report details modal */}
       <Modal
         opened={modalOpen}
