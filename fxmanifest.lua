@@ -12,14 +12,15 @@ shared_scripts {
 }
 
 client_scripts {
+    'client/error_handler.lua',  -- Load error handler first
     'client/main.lua',
-    'client/error_handler.lua',  -- Add error handler
     'client/commands.lua',
     'client/debug_tools.lua'
 }
 
 server_scripts {
     'server/json_storage.lua',
+    'server/error_handler.lua',  -- Add the server error handler
     'server/bootstrapper.lua',
     'server/main.lua',
     'server/permission_handler.lua'

@@ -108,6 +108,21 @@ function App() {
     setVisible(true);
   });
 
+  // Add handler for filter error fix
+  useNuiEvent('fixFilterError', () => {
+    console.log('[React] Received fixFilterError event');
+    
+    // Force a re-render by updating state
+    setVisible(false);
+    
+    // After a short delay, restore visibility
+    setTimeout(() => {
+      if (currentView) {
+        setVisible(true);
+      }
+    }, 200);
+  });
+
   useEffect(() => {
     const handleEscapeKey = (event) => {
       if (event.key === 'Escape' && visible) {

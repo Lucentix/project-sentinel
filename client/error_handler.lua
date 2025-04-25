@@ -18,17 +18,30 @@ RegisterNUICallback('reportError', function(data, cb)
     Logger.error("UI", "UI reported an error: " .. errorMessage)
     Logger.error("UI", "Error stack: " .. errorStack)
     
-    -- You could report this to your server for logging
+    -- Log the error to server console as well
     TriggerServerEvent("project-sentinel:logClientError", errorMessage, errorStack)
     
     cb({success = true})
+    
+    -- If we detect the specific filter error, try to recover automatically
+    if string.find(errorMessage, "filter is not a function") then
+        Logger.warn("UI", "Detected filter error - trying to recover UI automatically")
+        Citizen.SetTimeout(1000, function()
+            SendNUIMessage({
+                action = "fixFilterError",
+                timestamp = GetGameTimer()
+            })
+        end)
+    end
 end)
 
 -- Register a command to reset the UI if it gets stuck
 RegisterCommand('reset_admin', function()
     Logger.info("CLIENT", "Manually resetting admin UI")
     
-    CloseAdminPanel()
+    if isAdminMenuOpen then
+        CloseAdminPanel()
+    end
     SetNuiFocus(false, false)
     
     -- Wait a bit before allowing reopening
@@ -38,20 +51,20 @@ RegisterCommand('reset_admin', function()
     Logger.success("CLIENT", "Admin UI reset complete")
 end, false)
 
--- Background thread to monitor for UI errors and auto-recover
-Citizen.CreateThread(function()
-    while true do
-        Citizen.Wait(5000) -- Check every 5 seconds
-        
-        if isUiErrored and GetGameTimer() - lastErrorTime > 10000 then
-            -- If more than 10 seconds passed since the error, try to recover
-            Logger.info("CLIENT", "Attempting to auto-recover UI after error")
-            
-            CloseAdminPanel()
-            SetNuiFocus(false, false)
-            isUiErrored = false
-            
-            Logger.success("CLIENT", "UI auto-recovery complete")
-        end
+-- Add server event handler
+RegisterNetEvent('project-sentinel:logClientErrorResponse')
+AddEventHandler('project-sentinel:logClientErrorResponse', function(success)
+    if success then
+        Logger.info("CLIENT", "Error was logged on the server")
     end
+end)
+
+-- Register with server
+AddEventHandler('onClientResourceStart', function(resourceName)
+    if(GetCurrentResourceName() ~= resourceName) then
+        return
+    end
+    
+    TriggerServerEvent('project-sentinel:registerErrorHandler')
+    Logger.success("CLIENT", "Error handler initialized")
 end)

@@ -45,18 +45,18 @@ const DashboardTab = ({ stats }) => {
   const maxPlayers = players.max || 32;
   const playerPercentage = Math.round((onlinePlayers / maxPlayers) * 100);
   
-  // Mock data for charts - prevent empty data errors
-  const reportStatusData = [
-    { name: 'Open', value: openReports, color: '#FF9800' },
-    { name: 'In Progress', value: inProgressReports, color: '#2196F3' },
-    { name: 'Closed', value: closedReports, color: '#4CAF50' },
-  ].filter(item => item.value > 0);
+  // Fix for the filter error - create manual array instead of using filter
+  const reportStatusData = [];
+  if (openReports > 0) reportStatusData.push({ name: 'Open', value: openReports, color: '#FF9800' });
+  if (inProgressReports > 0) reportStatusData.push({ name: 'In Progress', value: inProgressReports, color: '#2196F3' });
+  if (closedReports > 0) reportStatusData.push({ name: 'Closed', value: closedReports, color: '#4CAF50' });
   
   // If no data, add a placeholder item
   if (reportStatusData.length === 0) {
     reportStatusData.push({ name: 'No Data', value: 1, color: '#757575' });
   }
   
+  // Create a safe version of player activity data
   const playerActivityData = [
     { name: '00:00', players: 18 },
     { name: '02:00', players: 12 },
