@@ -638,11 +638,11 @@ AddEventHandler('project-sentinel:getAdminUsers', function()
 end)
 
 RegisterNUICallback('getServerStats', function(data, cb)
-    local source = source
-    print("[server] NUI callback: Player ID " .. source .. " requested server stats")
+    local playerSource = source
+    print("[server] NUI callback: Player ID " .. playerSource .. " requested server stats")
     
     -- Add this extra check - sometimes NUI callbacks don't pass through the proper event
-    local adminRank = GetPlayerAdminRank(source)
+    local adminRank = GetPlayerAdminRank(playerSource)
     if not adminRank then
         print("[server] NUI callback denied - no admin rank")
         cb({ success = false, message = "Not authorized" })
@@ -650,7 +650,7 @@ RegisterNUICallback('getServerStats', function(data, cb)
     end
     
     -- Process the request just like the event handler does
-    TriggerEvent('project-sentinel:getServerStats', source)
+    TriggerEvent('project-sentinel:getServerStats', playerSource)
     cb({ success = true })
 end)
 

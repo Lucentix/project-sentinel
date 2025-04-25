@@ -95,12 +95,13 @@ end)
 
 RegisterNUICallback('submitReport', function(data, cb)
     Logger.info("CLIENT", "NUI callback: submitReport received")
+    Logger.debug("CLIENT", "Received data: " .. json.encode(data))
     local title = data.title
-    local description = data.description
+    local content = data.description
     
-    if title and description and #title > 0 and #description > 0 then
+    if title and content and #title > 0 and #content > 0 then
         Logger.info("CLIENT", "Submitting report: " .. title)
-        TriggerServerEvent('project-sentinel:submitReport', title, description)
+        TriggerServerEvent('project-sentinel:submitReport', title, content)
         CloseReportMenu()
         cb({ success = true })
         Logger.success("CLIENT", "Report submitted successfully")
