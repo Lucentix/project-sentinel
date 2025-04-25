@@ -6,6 +6,7 @@ import { useNuiEvent } from './hooks/useNuiEvent';
 import ReportPanel from './components/report/ReportPanel';
 import AdminPanel from './components/admin/AdminPanel';
 
+
 // Error boundary to catch and report UI errors
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -52,6 +53,7 @@ class ErrorBoundary extends React.Component {
     return this.props.children; 
   }
 }
+
 
 const AppContainer = styled.div`
   display: flex;
@@ -108,19 +110,20 @@ function App() {
     setVisible(true);
   });
 
-  // Add handler for filter error fix
+  // Add handler for the filter error fix
   useNuiEvent('fixFilterError', () => {
-    console.log('[React] Received fixFilterError event');
+    console.log('[React] Received filter error fix command');
     
-    // Force a re-render by updating state
-    setVisible(false);
-    
-    // After a short delay, restore visibility
-    setTimeout(() => {
-      if (currentView) {
+    // If the admin panel is open, try to reset the state
+    if (currentView === 'admin') {
+      console.log('[React] Attempting to fix admin panel state');
+      
+      // Force rerender by toggling visibility briefly
+      setVisible(false);
+      setTimeout(() => {
         setVisible(true);
-      }
-    }, 200);
+      }, 100);
+    }
   });
 
   useEffect(() => {
@@ -158,12 +161,10 @@ function App() {
   if (!visible) return null;
 
   return (
-    <ErrorBoundary>
-      <AppContainer className="fade-in">
-        {currentView === 'report' && <ReportPanel onClose={handleClose} />}
-        {currentView === 'admin' && <AdminPanel adminRank={adminRank} onClose={handleClose} />}
-      </AppContainer>
-    </ErrorBoundary>
+    <AppContainer className="fade-in">
+      {currentView === 'report' && <ReportPanel onClose={handleClose} />}
+      {currentView === 'admin' && <AdminPanel adminRank={adminRank} onClose={handleClose} />}
+    </AppContainer>
   );
 }
 

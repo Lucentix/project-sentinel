@@ -18,9 +18,8 @@ import {
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 
 const DashboardTab = ({ stats }) => {
-  console.log("DashboardTab rendering with stats:", stats);
+  console.log("DashboardTab rendering with stats:", JSON.stringify(stats));
   
-  // Check if stats is empty or invalid
   if (!stats || typeof stats !== 'object') {
     return (
       <Text color="dimmed" align="center" mt={50}>
@@ -29,7 +28,7 @@ const DashboardTab = ({ stats }) => {
     );
   }
 
-  // Use default values to prevent errors
+  // Ensure all nested objects and properties exist with proper defaults
   const players = stats.players || { online: 0, max: 32 };
   const reports = stats.reports || { total: 0, open: 0, inProgress: 0, closed: 0 };
   const server = stats.server || { name: "Unknown", uptime: 0, version: "1.0.0" };
@@ -45,7 +44,7 @@ const DashboardTab = ({ stats }) => {
   const maxPlayers = players.max || 32;
   const playerPercentage = Math.round((onlinePlayers / maxPlayers) * 100);
   
-  // Fix for the filter error - create manual array instead of using filter
+  // FIX: Don't use filter - create the array manually
   const reportStatusData = [];
   if (openReports > 0) reportStatusData.push({ name: 'Open', value: openReports, color: '#FF9800' });
   if (inProgressReports > 0) reportStatusData.push({ name: 'In Progress', value: inProgressReports, color: '#2196F3' });
@@ -56,7 +55,7 @@ const DashboardTab = ({ stats }) => {
     reportStatusData.push({ name: 'No Data', value: 1, color: '#757575' });
   }
   
-  // Create a safe version of player activity data
+  // Use static player activity data for now
   const playerActivityData = [
     { name: '00:00', players: 18 },
     { name: '02:00', players: 12 },

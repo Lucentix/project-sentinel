@@ -13,19 +13,53 @@ export const useNuiEvent = (action, handler) => {
         console.log(`[NUI] Handling action: ${action}`);
         
         try {
-          // Process specific data types
-          if (action === 'receiveReports' && data.reports) {
-            handler(Array.isArray(data.reports) ? data.reports : []);
-          } else if (action === 'receiveOnlinePlayers' && data.players) {
-            handler(Array.isArray(data.players) ? data.players : []);
-          } else if (action === 'receiveServerStats' && data.stats) {
-            handler(data.stats);
-          } else {
+          // Safely extract the data based on the action type
+          if (action === 'receiveReports') {
+            // Make sure reports is always an array
+            const reports = Array.isArray(data.reports) ? data.reports : [];
+            handler(reports);
+          } 
+          else if (action === 'receiveOnlinePlayers') {
+            // Make sure players is always an array
+            const players = Array.isArray(data.players) ? data.players : [];
+            handler(players);
+          } 
+          else if (action === 'receiveServerStats') {
+            // Make sure stats is always an object
+            const stats = (typeof data.stats === 'object' && data.stats !== null) ? data.stats : {
+              players: { online: 0, max: 32 },
+              reports: { total: 0, open: 0, inProgress: 0, closed: 0 },
+              server: { name: "Unknown", uptime: 0 }
+            };
+            handler(stats);
+          } 
+          else {
             // Default handler for other events
             handler(data);
           }
         } catch (error) {
           console.error(`[NUI] Error processing ${action} event:`, error);
+          
+          // Report error to client
+          fetch('https://project-sentinel/reportError', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              message: error.toString(),
+              stack: error.stack || "No stack available",
+              action: action
+            })
+          }).catch(err => console.error("[NUI] Failed to report error:", err));
+          
+          // Provide safe default values based on action type
+          if (action === 'receiveReports') handler([]);
+          else if (action === 'receiveOnlinePlayers') handler([]);
+          else if (action === 'receiveServerStats') {
+            handler({
+              players: { online: 0, max: 32 },
+              reports: { total: 0, open: 0, inProgress: 0, closed: 0 }
+            });
+          }
         }
       }
     }

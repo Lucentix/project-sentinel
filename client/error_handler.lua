@@ -4,67 +4,52 @@
 local resourceName = GetCurrentResourceName()
 local Logger = exports[resourceName]:getLogger()
 
-local isUiErrored = false
-local lastErrorTime = 0
-
 -- Register an event that can be called from the UI when an error occurs
 RegisterNUICallback('reportError', function(data, cb)
     local errorMessage = data.message or "Unknown error"
     local errorStack = data.stack or ""
+    local errorAction = data.action or "unknown"
     
-    isUiErrored = true
-    lastErrorTime = GetGameTimer()
-    
-    Logger.error("UI", "UI reported an error: " .. errorMessage)
+    Logger.error("UI", "UI reported an error in action: " .. errorAction)
+    Logger.error("UI", "Error message: " .. errorMessage)
     Logger.error("UI", "Error stack: " .. errorStack)
     
-    -- Log the error to server console as well
-    TriggerServerEvent("project-sentinel:logClientError", errorMessage, errorStack)
+    -- Log to server
+    TriggerServerEvent('project-sentinel:logClientError', errorMessage, errorStack)
+    
+    -- If this is the filter error, try to fix it
+    if string.match(errorMessage, "filter is not a function") then
+        Logger.warn("UI", "Detected filter error, sending fix command")
+        -- Send a message to reset the dashboard stats
+        SendNUIMessage({
+            action = "fixFilterError",
+            timestamp = os.time()
+        })
+    end
     
     cb({success = true})
-    
-    -- If we detect the specific filter error, try to recover automatically
-    if string.find(errorMessage, "filter is not a function") then
-        Logger.warn("UI", "Detected filter error - trying to recover UI automatically")
-        Citizen.SetTimeout(1000, function()
-            SendNUIMessage({
-                action = "fixFilterError",
-                timestamp = GetGameTimer()
-            })
-        end)
-    end
 end)
 
--- Register a command to reset the UI if it gets stuck
-RegisterCommand('reset_admin', function()
-    Logger.info("CLIENT", "Manually resetting admin UI")
+-- Command to reset the UI if it's stuck
+RegisterCommand('reset_sentinel', function()
+    Logger.info("CLIENT", "Manual reset of Sentinel UI requested")
+    
+    -- Force close any open interfaces
+    if isReportMenuOpen then
+        CloseReportMenu()
+    end
     
     if isAdminMenuOpen then
         CloseAdminPanel()
     end
+    
+    -- Force reset NUI focus
     SetNuiFocus(false, false)
     
-    -- Wait a bit before allowing reopening
-    Citizen.Wait(1000)
-    
-    isUiErrored = false
-    Logger.success("CLIENT", "Admin UI reset complete")
+    Logger.success("CLIENT", "Sentinel UI reset completed")
+    TriggerEvent('chat:addMessage', {
+        color = {0, 255, 0},
+        multiline = true,
+        args = {"System", "Sentinel UI has been reset."}
+    })
 end, false)
-
--- Add server event handler
-RegisterNetEvent('project-sentinel:logClientErrorResponse')
-AddEventHandler('project-sentinel:logClientErrorResponse', function(success)
-    if success then
-        Logger.info("CLIENT", "Error was logged on the server")
-    end
-end)
-
--- Register with server
-AddEventHandler('onClientResourceStart', function(resourceName)
-    if(GetCurrentResourceName() ~= resourceName) then
-        return
-    end
-    
-    TriggerServerEvent('project-sentinel:registerErrorHandler')
-    Logger.success("CLIENT", "Error handler initialized")
-end)
