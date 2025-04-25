@@ -7,12 +7,99 @@ local discordWebhook = "YOUR_DISCORD_WEBHOOK_URL_HERE"
 
 local adminRanks = {}
 
+-- Function to ensure ranks file exists
+function EnsureRanksFileExists()
+    local path = GetResourcePath(GetCurrentResourceName()) .. '/data/ranks.json'
+    local file = io.open(path, 'r')
+    
+    if not file then
+        print("^3Creating default ranks.json file^0")
+        
+        local defaultRanks = {
+            ["supporter"] = {
+                canSeeReports = true,
+                canManageReports = true,
+                canTeleport = true,
+                canUseAdminOutfit = true,
+                canHandleReports = true
+            },
+            ["moderator"] = {
+                canSeeReports = true,
+                canManageReports = true,
+                canTeleport = true,
+                canUseAdminOutfit = true,
+                canHandleReports = true,
+                canSummonPlayers = true,
+                canSeeInventory = true,
+                canManagePlayers = true
+            },
+            ["administrator"] = {
+                canSeeReports = true,
+                canManageReports = true,
+                canTeleport = true,
+                canUseAdminOutfit = true,
+                canHandleReports = true,
+                canSummonPlayers = true,
+                canSeeInventory = true,
+                canManagePlayers = true,
+                canManagePermissions = true
+            },
+            ["management"] = {
+                canSeeReports = true,
+                canManageReports = true,
+                canTeleport = true,
+                canUseAdminOutfit = true,
+                canHandleReports = true,
+                canSummonPlayers = true,
+                canSeeInventory = true,
+                canManagePlayers = true,
+                canManagePermissions = true
+            },
+            ["leitung"] = {
+                canSeeReports = true,
+                canManageReports = true,
+                canTeleport = true,
+                canUseAdminOutfit = true,
+                canHandleReports = true,
+                canSummonPlayers = true,
+                canSeeInventory = true,
+                canManagePlayers = true,
+                canManagePermissions = true
+            }
+        }
+        
+        file = io.open(path, 'w+')
+        if file then
+            file:write(json.encode(defaultRanks, {indent = true}))
+            file:close()
+            print("^2Default ranks.json file created successfully^0")
+        else
+            print("^1Failed to create default ranks.json file^0")
+        end
+        
+        return defaultRanks
+    else
+        local content = file:read('*a')
+        file:close()
+        
+        local success, ranks = pcall(function() return json.decode(content) end)
+        if not success then
+            print("^1Error parsing ranks.json file: " .. ranks .. "^0")
+            return {}
+        end
+        
+        return ranks
+    end
+end
+
 AddEventHandler('onResourceStart', function(resourceName)
     if (GetCurrentResourceName() ~= resourceName) then
         return
     end
     print('^2Project Sentinel Admin System has started^0')
     
+    -- Ensure ranks file exists
+    adminRanks = EnsureRanksFileExists()
     LoadAdminRanks()
     LoadReportsFromStorage()
 end)
